@@ -7,20 +7,22 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a0a">
   <style>
-    :root { --bg: #0a0a0a; --card: #111; --accent: #00ff9d; }
-    body { margin:0; padding:0; font-family: -apple-system, sans-serif; background:var(--bg); color:#e0e0e0; }
-    header { background:#000; padding:20px; text-align:center; }
+    :root { --bg: #0a0a0a; --card: #111111; --accent: #00ff9d; --red: #ff3b5c; }
+    body { margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background:var(--bg); color:#e0e0e0; }
+    header { background:#000; padding:20px; text-align:center; border-bottom:1px solid #222; }
     .container { padding:20px; max-width:620px; margin:0 auto; }
-    .search { width:100%; padding:16px; font-size:1.1rem; background:#1a1a1a; border:1px solid #333; border-radius:12px; color:white; }
-    button { background:#00ff9d; color:black; border:none; padding:16px; font-weight:700; border-radius:12px; width:100%; margin:10px 0; }
+    .search { width:100%; padding:16px 20px; font-size:1.1rem; background:#1a1a1a; border:1px solid #333; border-radius:12px; color:white; margin-bottom:10px; }
+    button { background:var(--accent); color:black; border:none; padding:16px; font-weight:700; border-radius:12px; width:100%; font-size:1.1rem; }
     .card { background:var(--card); border-radius:16px; padding:20px; margin:20px 0; border:1px solid #222; }
     .ticker { font-size:1.9rem; font-weight:700; }
     .price { color:var(--accent); font-size:1.5rem; }
-    .conviction { font-size:3rem; font-weight:800; text-align:right; }
-    .rec { padding:10px 18px; border-radius:999px; text-align:center; font-size:1.25rem; margin:12px 0; }
-    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px; }
-    .metric-label { font-size:0.85rem; color:#888; }
-    .metric-value { font-size:1.15rem; font-weight:600; }
+    .conviction { font-size:3.2rem; font-weight:800; text-align:right; line-height:1; }
+    .rec { padding:12px 20px; border-radius:999px; text-align:center; font-size:1.3rem; margin:12px 0; font-weight:600; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:20px; }
+    .metric { text-align:center; }
+    .metric-label { font-size:0.82rem; color:#888; }
+    .metric-value { font-size:1.2rem; font-weight:600; }
+    .info-box { background:#1a1a1a; padding:14px; border-radius:12px; margin-top:16px; font-size:0.95rem; }
   </style>
 </head>
 <body>
@@ -30,67 +32,111 @@
   </header>
 
   <div class="container">
-    <input type="text" id="tickerInput" class="search" placeholder="Enter ticker (NVDA, RKLB...)" onkeypress="if(event.key==='Enter') analyzeTicker()">
+    <input type="text" id="tickerInput" class="search" placeholder="Enter ticker (e.g. NVDA)" onkeypress="if(event.key==='Enter') analyzeTicker()">
     <button onclick="analyzeTicker()">ANALYZE TICKER</button>
 
     <div id="result" class="card" style="display:none;"></div>
 
     <h2 style="margin:30px 0 15px 5px;">Today's Top Conviction Picks</h2>
-    <div id="topPicks" class="loading">Loading...</div>
+    <div id="topPicks">Loading market signals...</div>
   </div>
 
   <script>
     const API_BASE = "https://bushwacka.onrender.com";
 
-    async function fetchJSON(url) { 
-      const r = await fetch(url); 
-      if (!r.ok) throw new Error(); 
-      return r.json(); 
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("API error");
+      return res.json();
     }
 
     async function analyzeTicker() {
-      let t = document.getElementById("tickerInput").value.trim().toUpperCase();
-      if (!t) return;
-      const div = document.getElementById("result");
-      div.style.display = "block";
-      div.innerHTML = `<div style="text-align:center;padding:40px;color:#666">Analyzing ${t}...</div>`;
+      let ticker = document.getElementById("tickerInput").value.trim().toUpperCase();
+      if (!ticker) return;
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = `<div style="text-align:center;padding:40px;color:#666;">Analyzing ${ticker}...</div>`;
 
       try {
-        const d = await fetchJSON(`${API_BASE}/signal/${t}`);
+        const data = await fetchJSON(`${API_BASE}/signal/${ticker}`);
+
+        const recColor = data.conviction >= 82 ? '#00ff9d' : data.conviction >= 72 ? '#00cc77' : '#ffaa00';
+
         let html = `
-          <div style="display:flex;justify-content:space-between">
-            <div><span class="ticker">${d.ticker}</span><br><span class="price">$${d.current_price}</span></div>
-            <div><span style="font-size:0.9rem;color:#888">Conviction</span><br><span class="conviction">${d.conviction}</span></div>
-          </div>
-          <div class="rec" style="background:${d.conviction>=82?'#00ff9d22':d.conviction>=72?'#00cc7722':'#ffaa0022'};color:${d.conviction>=72?'#00ff9d':'#ffaa00'}">
-            ${d.recommendation}
-          </div>
-          <p><strong>Position:</strong> ${d.position_pct}% • ${d.risk_level}</p>
-          
-          <div class="metrics">
-            <div><div class="metric-label">Wilson</div><div class="metric-value">${d.wilson_score}</div></div>
-            <div><div class="metric-label">Win Rate vs SPY</div><div class="metric-value">${d.win_rate}%</div></div>
-            <div><div class="metric-label">Sharpe</div><div class="metric-value">${d.sharpe}</div></div>
-            <div><div class="metric-label">Max DD</div><div class="metric-value">${d.max_drawdown}%</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:start">
+            <div>
+              <div class="ticker">${data.ticker}</div>
+              <div class="price">$${data.current_price}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:0.9rem;color:#888">Conviction</div>
+              <div class="conviction">${data.conviction}</div>
+            </div>
           </div>
 
-          <div style="margin-top:20px;background:#1a1a1a;padding:15px;border-radius:12px">
-            <strong>1-Year Projection:</strong> $${d.projected_1yr_price} (${d.projected_1yr_gain_pct}%)<br>
-            <strong>Analyst Upside:</strong> ${d.analyst_target_upside ? d.analyst_target_upside + '%' : 'N/A'}<br>
-            <strong>Alt Data:</strong> ${d.alt_data_note}
+          <div class="rec" style="background:${recColor}22;color:${recColor}">
+            ${data.recommendation}
+          </div>
+
+          <p><strong>Position:</strong> ${data.position_pct}% of portfolio • ${data.risk_level} risk</p>
+
+          <div class="metrics">
+            <div class="metric"><div class="metric-label">Wilson Score</div><div class="metric-value">${data.wilson_score}</div></div>
+            <div class="metric"><div class="metric-label">Win Rate vs SPY</div><div class="metric-value">${data.win_rate}%</div></div>
+            <div class="metric"><div class="metric-label">Sharpe Ratio</div><div class="metric-value">${data.sharpe}</div></div>
+            <div class="metric"><div class="metric-label">Max Drawdown</div><div class="metric-value">${data.max_drawdown}%</div></div>
+          </div>
+
+          <div class="info-box">
+            <strong>1-Year Projection:</strong> $${data.projected_1yr_price} (${data.projected_1yr_gain_pct}%)<br>
+            <strong>Analyst Target Upside:</strong> ${data.analyst_target_upside ? data.analyst_target_upside + '%' : 'N/A'}<br>
+            <strong>Alt Data:</strong> ${data.alt_data_note}
           </div>
         `;
-        div.innerHTML = html;
-      } catch(e) {
-        div.innerHTML = `<p style="color:#ff3b5c">Failed to load ${t}</p>`;
+
+        resultDiv.innerHTML = html;
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:#ff3b5c;text-align:center">Could not analyze ${ticker}. Backend may be restarting.</p>`;
       }
     }
 
     async function loadTopPicks() {
-      // ... (same as before, you can keep the old one or I can expand it)
-      document.getElementById("topPicks").innerHTML = "<p>Top picks loading... (refresh if needed)</p>";
+      const container = document.getElementById("topPicks");
+      try {
+        const data = await fetchJSON(`${API_BASE}/top`);
+        let html = '';
+        data.top.forEach(stock => {
+          html += `
+            <div class="card" onclick="quickAnalyze('${stock.ticker}')">
+              <div style="display:flex;justify-content:space-between">
+                <div>
+                  <strong>${stock.ticker}</strong><br>
+                  <small>$${stock.current_price}</small>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:2rem;font-weight:800;color:${stock.conviction >= 60 ? '#00ff9d' : '#ffaa00'}">
+                    ${stock.conviction}
+                  </div>
+                  <small>conviction</small>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<p style="color:#888">Failed to load top picks. Try refreshing.</p>`;
+      }
     }
 
+    function quickAnalyze(ticker) {
+      document.getElementById("tickerInput").value = ticker;
+      analyzeTicker();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Auto load
     loadTopPicks();
   </script>
 </body>
