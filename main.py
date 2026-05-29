@@ -3,13 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from core import advanced_stats
 from datetime import datetime
 
-app = FastAPI(title="Ben's Trading Supercomputer")
+app = FastAPI(title="Ben's WhaleWatch Supercomputer")
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
-    return {"message": "Ben's Super Quant Assistant Online", "time": datetime.now().isoformat()}
+    return {"message": "WhaleWatch Supercomputer Online", "time": datetime.now().isoformat()}
 
 @app.get("/signal/{ticker}")
 def get_signal(ticker: str):
@@ -20,8 +25,11 @@ def get_signal(ticker: str):
 
 @app.get("/top")
 def get_top():
-    watchlist = ["NVDA","AAPL","MSFT","GOOGL","AMZN","META","TSLA","AVGO","AMD","LMT","TSM","COIN","PLTR","RKLB"]
-    results = [advanced_stats(t) for t in watchlist]
-    results = [r for r in results if r]
-    results.sort(key=lambda x: x['conviction'], reverse=True)
-    return {"top": results[:12], "updated": datetime.now().isoformat()}
+    watchlist = ["NVDA", "RKLB", "TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "AVGO", "PLTR"]
+    results = []
+    for t in watchlist:
+        data = advanced_stats(t)
+        if data:
+            results.append(data)
+    results.sort(key=lambda x: x["conviction"], reverse=True)
+    return {"top": results[:10], "updated": datetime.now().isoformat()}
