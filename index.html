@@ -3,1032 +3,780 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>WhaleWatch • Ben's Quant</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#04070d">
+<meta name="theme-color" content="#060609">
+<title>WhaleWatch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-:root {
-  --bg:       #04070d;
-  --layer1:   #080e18;
-  --layer2:   #0c1422;
-  --layer3:   #101a2c;
-  --border:   rgba(255,255,255,0.07);
-  --border2:  rgba(255,255,255,0.12);
-  --green:    #00ffa3;
-  --green-dim:#00c97d;
-  --blue:     #4d9eff;
-  --amber:    #ffb830;
-  --red:      #ff4466;
-  --text:     #e8f0ff;
-  --text2:    #8899bb;
-  --text3:    #445566;
-  --glow:     rgba(0,255,163,0.15);
-  --glow2:    rgba(77,158,255,0.12);
+:root{
+  --ink:    #060609;
+  --ink2:   #0d0d14;
+  --ink3:   #13131e;
+  --ink4:   #1a1a28;
+  --wire:   rgba(255,255,255,0.06);
+  --wire2:  rgba(255,255,255,0.11);
+  --lime:   #b8ff5a;
+  --lime2:  #8fcc3a;
+  --cyan:   #5af0ff;
+  --amber:  #ffcc44;
+  --rose:   #ff4d6a;
+  --fog:    #6b7a9a;
+  --mist:   #9aaabb;
+  --snow:   #ddeeff;
+  --mono:   'IBM Plex Mono', monospace;
+  --sans:   'IBM Plex Sans', sans-serif;
 }
 
-html { height: 100%; }
+html,body{height:100%;overflow-x:hidden}
 
-body {
-  font-family: 'Space Grotesk', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100%;
-  overflow-x: hidden;
+body{
+  font-family:var(--sans);
+  background:var(--ink);
+  color:var(--snow);
+  min-height:100%;
 }
 
-/* ── AMBIENT GLOW ── */
-body::after {
-  content: '';
-  position: fixed;
-  top: -200px; left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 400px;
-  background: radial-gradient(ellipse, rgba(0,255,163,0.06) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+/* grid overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(184,255,90,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(184,255,90,0.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
 }
 
-/* ── SCANLINES ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.08) 2px,
-    rgba(0,0,0,0.08) 4px
-  );
-  pointer-events: none;
-  z-index: 999;
-  opacity: 0.4;
+/* top glow */
+body::after{
+  content:'';position:fixed;top:-120px;left:50%;transform:translateX(-50%);
+  width:600px;height:300px;
+  background:radial-gradient(ellipse,rgba(184,255,90,0.07) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
 }
 
 /* ── HEADER ── */
-header {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(4,7,13,0.92);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 20px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+header{
+  position:sticky;top:0;z-index:200;
+  background:rgba(6,6,9,0.96);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--wire2);
+  height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.logo{display:flex;align-items:center;gap:10px}
+
+.logo-mark{
+  width:28px;height:28px;
+  background:var(--lime);
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  box-shadow:0 0 16px rgba(184,255,90,0.4);
+  flex-shrink:0;
 }
 
-.brand-whale {
-  width: 32px; height: 32px;
-  background: linear-gradient(135deg, var(--green), var(--blue));
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-  box-shadow: 0 0 20px rgba(0,255,163,0.3);
+.logo-text{
+  font-family:var(--mono);
+  font-size:0.82rem;font-weight:700;
+  letter-spacing:0.2em;color:var(--snow);
 }
 
-.brand-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--text);
+.logo-sub{
+  font-family:var(--mono);
+  font-size:0.5rem;color:var(--fog);
+  letter-spacing:0.15em;margin-top:1px;
 }
 
-.brand-tag {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-  margin-top: 1px;
+.hdr-right{display:flex;align-items:center;gap:10px}
+
+.pulse-badge{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:0.55rem;
+  color:var(--lime);letter-spacing:0.1em;
+  background:rgba(184,255,90,0.08);
+  border:1px solid rgba(184,255,90,0.2);
+  padding:4px 9px;border-radius:3px;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.pulse-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--lime);
+  box-shadow:0 0 6px var(--lime);
+  animation:blink 1.4s ease infinite;
 }
 
-.live-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--green);
-  letter-spacing: 0.1em;
-  background: rgba(0,255,163,0.08);
-  border: 1px solid rgba(0,255,163,0.2);
-  padding: 4px 10px;
-  border-radius: 20px;
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.refresh-btn{
+  font-family:var(--mono);font-size:0.55rem;
+  color:var(--fog);letter-spacing:0.1em;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--wire2);
+  padding:4px 9px;border-radius:3px;
+  cursor:pointer;transition:all .15s;
 }
 
-.live-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  animation: livePulse 1.5s ease infinite;
-}
-
-@keyframes livePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
+.refresh-btn:hover{color:var(--lime);border-color:rgba(184,255,90,0.3)}
 
 /* ── TABS ── */
-.tabs {
-  display: flex;
-  background: var(--layer1);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  gap: 2px;
-  position: sticky; top: 56px; z-index: 99;
+nav{
+  display:flex;
+  background:var(--ink2);
+  border-bottom:1px solid var(--wire);
+  padding:0 18px;
+  position:sticky;top:52px;z-index:199;
 }
 
-.tab {
-  flex: 1;
-  padding: 13px 8px;
-  background: none;
-  border: none;
-  color: var(--text3);
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: color 0.2s;
-  position: relative;
-  text-align: center;
+.tab{
+  padding:12px 16px;
+  font-family:var(--mono);font-size:0.65rem;font-weight:500;
+  letter-spacing:0.15em;color:var(--fog);
+  background:none;border:none;cursor:pointer;
+  transition:color .2s;position:relative;
 }
 
-.tab::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 20%; right: 20%;
-  height: 2px;
-  background: var(--green);
-  border-radius: 2px 2px 0 0;
-  transform: scaleX(0);
-  transition: transform 0.2s;
+.tab::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:2px;background:var(--lime);border-radius:2px 2px 0 0;
+  transform:scaleX(0);transition:transform .2s;
 }
 
-.tab.active { color: var(--green); }
-.tab.active::after { transform: scaleX(1); }
+.tab.on{color:var(--lime)}
+.tab.on::after{transform:scaleX(1)}
 
 /* ── PAGES ── */
-.page { display: none; }
-.page.active { display: block; }
+.pg{display:none}
+.pg.on{display:block}
 
-/* ── CONTAINER ── */
-.wrap {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px 16px 40px;
-  position: relative; z-index: 1;
+/* ── WRAP ── */
+.w{
+  max-width:580px;margin:0 auto;
+  padding:18px 16px 60px;
+  position:relative;z-index:1;
 }
 
-/* ── SEARCH BAR ── */
-.search-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+/* ── SEARCH ── */
+.srow{display:flex;gap:8px;margin-bottom:20px}
+
+.tinput{
+  flex:1;height:50px;
+  padding:0 16px;
+  font-family:var(--mono);font-size:1rem;font-weight:600;
+  letter-spacing:0.15em;text-transform:uppercase;
+  background:var(--ink3);
+  border:1px solid var(--wire2);border-radius:4px;
+  color:var(--snow);outline:none;
+  transition:border-color .2s,box-shadow .2s;
 }
 
-.ticker-input {
-  flex: 1;
-  background: var(--layer2);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
-  padding: 0 18px;
-  height: 52px;
-  font-family: 'Space Mono', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  text-transform: uppercase;
+.tinput::placeholder{
+  color:var(--fog);font-weight:300;
+  letter-spacing:0.05em;text-transform:none;
 }
 
-.ticker-input::placeholder {
-  color: var(--text3);
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  text-transform: none;
+.tinput:focus{
+  border-color:rgba(184,255,90,.5);
+  box-shadow:0 0 0 3px rgba(184,255,90,.07);
 }
 
-.ticker-input:focus {
-  border-color: rgba(0,255,163,0.4);
-  box-shadow: 0 0 0 4px rgba(0,255,163,0.08), inset 0 0 20px rgba(0,255,163,0.03);
+.gbtn{
+  height:50px;padding:0 20px;
+  font-family:var(--mono);font-size:0.7rem;font-weight:700;
+  letter-spacing:0.15em;
+  background:var(--lime);color:#050505;
+  border:none;border-radius:4px;cursor:pointer;
+  transition:all .15s;
+  box-shadow:0 0 20px rgba(184,255,90,.2);
+  flex-shrink:0;
 }
 
-.go-btn {
-  height: 52px;
-  padding: 0 22px;
-  background: linear-gradient(135deg, #00e896, #00c97d);
-  border: none;
-  border-radius: 12px;
-  color: #000;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 4px 20px rgba(0,255,163,0.25);
-  flex-shrink: 0;
+.gbtn:hover{background:#ccff77;box-shadow:0 0 28px rgba(184,255,90,.35);transform:translateY(-1px)}
+.gbtn:active{transform:translateY(0)}
+
+/* ── RESULT ── */
+.result{display:none;animation:up .3s cubic-bezier(.16,1,.3,1)}
+
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TICKER HERO ── */
+.hero{
+  background:var(--ink3);
+  border:1px solid var(--wire2);
+  border-radius:6px;
+  padding:22px;
+  margin-bottom:10px;
+  position:relative;overflow:hidden;
 }
 
-.go-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,255,163,0.35);
+.hero-glow{
+  position:absolute;top:-80px;right:-80px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(184,255,90,.08),transparent 70%);
+  pointer-events:none;
 }
 
-.go-btn:active { transform: translateY(0); }
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
 
-/* ── RESULT CARD ── */
-.result {
-  display: none;
-  animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1);
-}
+.ht-left{}
+.h-ticker{font-size:2.6rem;font-weight:700;letter-spacing:-.02em;line-height:1}
+.h-price{font-family:var(--mono);font-size:1.1rem;color:var(--lime);margin-top:5px}
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── HERO BLOCK ── */
-.hero {
-  background: var(--layer2);
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 12px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 200px; height: 200px;
-  border-radius: 50%;
-  background: var(--glow);
-  pointer-events: none;
-}
-
-.hero-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.hero-left {}
-
-.h-ticker {
-  font-size: 2.4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.h-price {
-  font-family: 'Space Mono', monospace;
-  font-size: 1.2rem;
-  color: var(--green);
-  margin-top: 6px;
-}
-
-.h-conviction {
-  text-align: right;
-}
-
-.h-conv-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--text3);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.h-conv-num {
-  font-size: 4rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
+.ht-right{text-align:right}
+.cv-label{font-family:var(--mono);font-size:.5rem;color:var(--fog);letter-spacing:.15em;text-transform:uppercase}
+.cv-num{font-family:var(--mono);font-size:4rem;font-weight:700;letter-spacing:-.04em;line-height:1}
 
 /* conviction bar */
-.conv-bar-wrap {
-  height: 4px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 18px;
+.cbar{height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;margin-bottom:18px}
+.cbar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.16,1,.3,1)}
+
+/* verdict pill */
+.verdict{
+  display:flex;align-items:center;justify-content:center;
+  padding:13px;border-radius:4px;
+  font-family:var(--mono);font-size:.85rem;font-weight:700;
+  letter-spacing:.12em;margin-bottom:14px;
 }
 
-.conv-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 1s cubic-bezier(0.16,1,0.3,1);
+/* entry flag */
+.entry-flag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:.6rem;font-weight:500;
+  letter-spacing:.1em;padding:5px 10px;border-radius:3px;
+  margin-bottom:14px;
 }
 
-/* ── REC PILL ── */
-.rec-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 20px;
-  border-radius: 12px;
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  margin-bottom: 16px;
+/* ── CATEGORY SCORES ── */
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+
+.cat-box{
+  background:var(--ink4);
+  border:1px solid var(--wire);
+  border-radius:5px;
+  padding:14px;
 }
 
-/* ── POSITION STRIP ── */
-.pos-strip {
-  display: flex;
-  gap: 8px;
+.cat-name{
+  font-family:var(--mono);font-size:.55rem;
+  color:var(--fog);letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:8px;
 }
 
-.pos-chip {
-  flex: 1;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  text-align: center;
+.cat-score{
+  font-family:var(--mono);font-size:1.8rem;font-weight:700;
+  letter-spacing:-.02em;line-height:1;margin-bottom:6px;
 }
 
-.pos-chip .pc-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
+.cat-bar{height:2px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.16,1,.3,1)}
+
+/* ── SECTION CARD ── */
+.card{
+  background:var(--ink3);
+  border:1px solid var(--wire);
+  border-radius:6px;
+  padding:18px;
+  margin-bottom:10px;
 }
 
-.pos-chip .pc-val {
-  font-family: 'Space Mono', monospace;
-  font-size: 1rem;
-  font-weight: 700;
+.card-title{
+  font-family:var(--mono);font-size:.55rem;
+  color:var(--fog);letter-spacing:.15em;text-transform:uppercase;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
 }
 
-/* ── REASONS ── */
-.section {
-  background: var(--layer2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 12px;
+.card-title::after{content:'';flex:1;height:1px;background:var(--wire)}
+
+/* ── METRIC ROWS ── */
+.metric-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);
 }
 
-.sec-title {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.58rem;
-  color: var(--text3);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.metric-row:last-child{border-bottom:none;padding-bottom:0}
+.metric-row:first-child{padding-top:0}
+
+.mr-name{
+  font-family:var(--mono);font-size:.72rem;color:var(--mist);
+  flex:1;
 }
 
-.sec-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
+.mr-raw{
+  font-family:var(--mono);font-size:.65rem;color:var(--fog);
+  width:64px;text-align:right;
 }
 
-.reason {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  margin-bottom: 6px;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  background: rgba(255,255,255,0.025);
+.mr-bar{
+  width:60px;height:4px;
+  background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;
+  flex-shrink:0;
 }
 
-.reason:last-child { margin-bottom: 0; }
+.mr-bar-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.16,1,.3,1)}
 
-.reason-icon {
-  font-size: 0.75rem;
-  width: 22px; height: 22px;
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  margin-top: 1px;
+.mr-score{
+  font-family:var(--mono);font-size:.8rem;font-weight:600;
+  width:28px;text-align:right;flex-shrink:0;
 }
 
-.reason.pos .reason-icon { background: rgba(0,255,163,0.15); color: var(--green); }
-.reason.neg .reason-icon { background: rgba(255,68,102,0.15); color: var(--red); }
-
-/* ── TIMEFRAMES ── */
-.tf-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+/* ── WARNINGS ── */
+.warning-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;
+  background:rgba(255,77,106,.05);
+  border:1px solid rgba(255,77,106,.15);
+  border-radius:4px;
+  margin-bottom:6px;
+  font-size:.8rem;line-height:1.4;
+  color:var(--mist);
 }
 
-.tf-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 12px;
-  text-align: center;
+.warning-item:last-child{margin-bottom:0}
+
+/* ── PICKS ── */
+.pick{
+  background:var(--ink3);border:1px solid var(--wire);
+  border-radius:5px;padding:16px;
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:all .2s;
+  animation:up .3s cubic-bezier(.16,1,.3,1) both;
+  position:relative;overflow:hidden;
 }
 
-.tf-period {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.58rem;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
+.pick:hover{border-color:var(--wire2);background:var(--ink4);transform:translateX(4px)}
 
-.tf-sharpe {
-  font-family: 'Space Mono', monospace;
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
+.pick-rank{font-family:var(--mono);font-size:.6rem;color:var(--fog);width:20px;flex-shrink:0}
+.pick-info{flex:1}
+.pick-ticker{font-size:1rem;font-weight:700;font-family:var(--mono)}
+.pick-price{font-family:var(--mono);font-size:.65rem;color:var(--fog);margin-top:2px}
+.pick-verdict{font-family:var(--mono);font-size:.6rem;color:var(--mist);margin-top:4px}
+.pick-pct{font-family:var(--mono);font-size:.58rem;color:var(--fog);margin-top:2px}
 
-.tf-wr {
-  font-size: 0.68rem;
-  color: var(--text2);
-}
+.pick-right{text-align:right;flex-shrink:0}
+.pick-cv{font-family:var(--mono);font-size:1.9rem;font-weight:700;line-height:1}
+.pick-label{font-family:var(--mono);font-size:.5rem;color:var(--fog);letter-spacing:.1em}
 
-/* ── STATS GRID ── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.stat {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-}
-
-.stat-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.stat-val {
-  font-family: 'Space Mono', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-/* ── FUNDAMENTALS ── */
-.fund-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
-}
-
-.fund-row:last-child { border-bottom: none; padding-bottom: 0; }
-.fund-row:first-child { padding-top: 0; }
-
-.fund-label { color: var(--text2); }
-.fund-val { font-family: 'Space Mono', monospace; font-weight: 600; }
-
-/* ── TOP PICKS ── */
-.picks-list {}
-
-.pick {
-  background: var(--layer2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-  animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1) both;
-}
-
-.pick:hover {
-  border-color: var(--border2);
-  background: var(--layer3);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-
-.pick-rank {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
-  color: var(--text3);
-  width: 20px;
-  flex-shrink: 0;
-}
-
-.pick-glow {
-  position: absolute;
-  right: 0; top: 0; bottom: 0;
-  width: 80px;
-  pointer-events: none;
-}
-
-.pick-info { flex: 1; }
-
-.pick-ticker {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
-.pick-price {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--text2);
-  margin-top: 2px;
-}
-
-.pick-rec {
-  font-size: 0.68rem;
-  color: var(--text2);
-  margin-top: 4px;
-}
-
-.pick-score {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.pick-num {
-  font-family: 'Space Mono', monospace;
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.pick-badge {
-  font-size: 0.6rem;
-  color: var(--text3);
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 0.05em;
-}
-
-/* Conviction bar on picks */
-.pick-bar {
-  position: absolute;
-  bottom: 0; left: 0;
-  height: 2px;
-  border-radius: 0 0 14px 14px;
-  transition: width 1s cubic-bezier(0.16,1,0.3,1);
-}
+.pick-stripe{position:absolute;bottom:0;left:0;height:2px;transition:width 1s cubic-bezier(.16,1,.3,1)}
 
 /* ── SCAN ── */
-.scan-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--text3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
+.sinput{
+  width:100%;padding:13px 16px;
+  font-family:var(--mono);font-size:.8rem;
+  letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink3);border:1px solid var(--wire2);
+  border-radius:4px;color:var(--snow);outline:none;
+  margin-bottom:8px;transition:border-color .2s;
 }
 
-.scan-input {
-  width: 100%;
-  background: var(--layer2);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
-  padding: 14px 18px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85rem;
-  color: var(--text);
-  outline: none;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
+.sinput::placeholder{color:var(--fog);text-transform:none;letter-spacing:0}
+.sinput:focus{border-color:rgba(90,240,255,.4);box-shadow:0 0 0 3px rgba(90,240,255,.06)}
+
+.sbtn{
+  width:100%;height:46px;
+  font-family:var(--mono);font-size:.7rem;font-weight:700;
+  letter-spacing:.15em;
+  background:var(--cyan);color:#050505;
+  border:none;border-radius:4px;cursor:pointer;
+  transition:all .15s;box-shadow:0 0 20px rgba(90,240,255,.15);
+  margin-bottom:18px;
 }
 
-.scan-input::placeholder { color: var(--text3); text-transform: none; letter-spacing: 0; }
-.scan-input:focus { border-color: rgba(77,158,255,0.4); box-shadow: 0 0 0 4px rgba(77,158,255,0.08); }
+.sbtn:hover{background:#88f8ff;box-shadow:0 0 28px rgba(90,240,255,.25);transform:translateY(-1px)}
 
-.scan-btn {
-  width: 100%;
-  height: 48px;
-  background: linear-gradient(135deg, #3a8fff, #2266cc);
-  border: none;
-  border-radius: 12px;
-  color: #fff;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 4px 20px rgba(77,158,255,0.2);
-  margin-bottom: 20px;
+.stable-wrap{background:var(--ink3);border:1px solid var(--wire);border-radius:5px;overflow:hidden}
+
+table{width:100%;border-collapse:collapse}
+
+thead th{
+  font-family:var(--mono);font-size:.52rem;color:var(--fog);
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:10px 12px;text-align:left;
+  background:rgba(255,255,255,.02);
+  border-bottom:1px solid var(--wire);
 }
 
-.scan-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(77,158,255,0.3);
+tbody tr{cursor:pointer;transition:background .15s}
+tbody tr:hover td{background:rgba(255,255,255,.025)}
+tbody td{
+  padding:12px 12px;
+  font-family:var(--mono);font-size:.72rem;
+  border-bottom:1px solid rgba(255,255,255,.03);
 }
-
-/* ── SCAN TABLE ── */
-.scan-table-wrap {
-  background: var(--layer2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-table { width: 100%; border-collapse: collapse; }
-
-thead th {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--text3);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 12px 14px;
-  text-align: left;
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid var(--border);
-}
-
-tbody tr {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-tbody tr:hover td { background: rgba(255,255,255,0.03); }
-
-tbody td {
-  padding: 13px 14px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.78rem;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-
-tbody tr:last-child td { border-bottom: none; }
+tbody tr:last-child td{border-bottom:none}
 
 /* ── LOADING / ERROR ── */
-.loading {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text3);
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+.loading{
+  text-align:center;padding:48px 20px;
+  font-family:var(--mono);font-size:.7rem;
+  color:var(--fog);letter-spacing:.12em;
 }
 
-.loading-spinner {
-  width: 32px; height: 32px;
-  border: 2px solid var(--border);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
+.spinner{
+  width:28px;height:28px;
+  border:2px solid var(--wire2);
+  border-top-color:var(--lime);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  margin:0 auto 14px;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin{to{transform:rotate(360deg)}}
 
-.err {
-  text-align: center;
-  padding: 32px;
-  color: var(--red);
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  line-height: 1.6;
+.err{
+  text-align:center;padding:32px;
+  font-family:var(--mono);font-size:.7rem;
+  color:var(--rose);letter-spacing:.05em;line-height:1.7;
 }
 
-/* ── COLOR UTILS ── */
-.g { color: var(--green); }
-.b { color: var(--blue); }
-.a { color: var(--amber); }
-.r { color: var(--red); }
-.m { color: var(--text2); }
+/* ── SECTION TITLE ── */
+.sec-hd{
+  font-family:var(--mono);font-size:.6rem;
+  color:var(--fog);letter-spacing:.15em;text-transform:uppercase;
+  margin:0 0 12px;
+  display:flex;align-items:center;gap:8px;
+}
+.sec-hd::after{content:'';flex:1;height:1px;background:var(--wire)}
+
+/* refresh status */
+.refresh-status{
+  font-family:var(--mono);font-size:.58rem;
+  color:var(--fog);letter-spacing:.08em;
+  text-align:center;padding:10px 0 4px;
+}
+
+/* ── UTILS ── */
+.lime{color:var(--lime)}
+.cyan{color:var(--cyan)}
+.amb{color:var(--amber)}
+.rose{color:var(--rose)}
+.fog{color:var(--fog)}
+.mist{color:var(--mist)}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
-  <div class="brand">
-    <div class="brand-whale">🐋</div>
+  <div class="logo">
+    <div class="logo-mark">🐋</div>
     <div>
-      <div class="brand-name">WHALEWATCH</div>
-      <div class="brand-tag">BEN'S QUANT SUPERCOMPUTER</div>
+      <div class="logo-text">WHALEWATCH</div>
+      <div class="logo-sub">PURE QUANT ENGINE</div>
     </div>
   </div>
-  <div class="header-right">
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      LIVE
-    </div>
+  <div class="hdr-right">
+    <button class="refresh-btn" onclick="manualRefresh()">↻ REFRESH BASKET</button>
+    <div class="pulse-badge"><div class="pulse-dot"></div>LIVE</div>
   </div>
 </header>
 
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('analyze')">ANALYZE</button>
-  <button class="tab" onclick="switchTab('picks')">TOP PICKS</button>
-  <button class="tab" onclick="switchTab('scan')">SCAN</button>
-</div>
+<nav>
+  <button class="tab on" onclick="go('analyze')">ANALYZE</button>
+  <button class="tab"    onclick="go('picks')">TOP PICKS</button>
+  <button class="tab"    onclick="go('scan')">SCAN</button>
+</nav>
 
 <!-- ANALYZE -->
-<div class="page active" id="page-analyze">
-  <div class="wrap">
-    <div class="search-row">
-      <input class="ticker-input" id="tickerInput" placeholder="Enter ticker…" maxlength="10"
-        onkeypress="if(event.key==='Enter') go()">
-      <button class="go-btn" onclick="go()">ANALYZE</button>
+<div class="pg on" id="pg-analyze">
+  <div class="w">
+    <div class="srow">
+      <input class="tinput" id="ti" placeholder="Ticker symbol…" maxlength="10"
+        onkeypress="if(event.key==='Enter')analyze()">
+      <button class="gbtn" onclick="analyze()">ANALYZE</button>
     </div>
-    <div class="result" id="result"></div>
+    <div class="result" id="res"></div>
   </div>
 </div>
 
 <!-- TOP PICKS -->
-<div class="page" id="page-picks">
-  <div class="wrap">
-    <div id="picksContent">
-      <div class="loading"><div class="loading-spinner"></div>Loading market signals…</div>
-    </div>
+<div class="pg" id="pg-picks">
+  <div class="w">
+    <div id="pks"><div class="loading"><div class="spinner"></div>Loading signals…</div></div>
   </div>
 </div>
 
 <!-- SCAN -->
-<div class="page" id="page-scan">
-  <div class="wrap">
-    <div class="scan-label">BULK SCANNER — paste tickers separated by commas</div>
-    <input class="scan-input" id="scanInput" placeholder="NVDA, TSLA, AAPL, RKLB, AMD…"
-      onkeypress="if(event.key==='Enter') runScan()">
-    <button class="scan-btn" onclick="runScan()">RUN SCAN</button>
-    <div id="scanOut"></div>
+<div class="pg" id="pg-scan">
+  <div class="w">
+    <div class="sec-hd">BULK SCANNER</div>
+    <input class="sinput" id="si" placeholder="NVDA, TSLA, AAPL, RKLB…"
+      onkeypress="if(event.key==='Enter')scan()">
+    <button class="sbtn" onclick="scan()">RUN SCAN</button>
+    <div id="sout"></div>
   </div>
 </div>
 
 <script>
 const API = 'https://bushwacka.onrender.com';
 
-/* ── TABS ── */
-function switchTab(t) {
-  ['analyze','picks','scan'].forEach((id, i) => {
-    document.querySelectorAll('.tab')[i].classList.toggle('active', id === t);
-    document.getElementById(`page-${id}`).classList.toggle('active', id === t);
+// ── TABS ──
+function go(t){
+  ['analyze','picks','scan'].forEach((id,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('on',id===t);
+    document.getElementById('pg-'+id).classList.toggle('on',id===t);
   });
-  if (t === 'picks' && !document.getElementById('picksContent').querySelector('.pick')) loadPicks();
+  if(t==='picks'&&!document.querySelector('.pick')) loadPicks();
 }
 
-/* ── COLOR HELPERS ── */
-function cColor(c) {
-  if (c >= 80) return 'var(--green)';
-  if (c >= 68) return 'var(--blue)';
-  if (c >= 54) return 'var(--amber)';
-  return 'var(--red)';
+// ── COLOR ──
+function cc(c){
+  if(c>=80) return 'var(--lime)';
+  if(c>=65) return 'var(--cyan)';
+  if(c>=45) return 'var(--amber)';
+  if(c>=30) return '#ff8855';
+  return 'var(--rose)';
 }
 
-function cGradient(c) {
-  if (c >= 80) return 'linear-gradient(90deg, #00ffa3, #00c97d)';
-  if (c >= 68) return 'linear-gradient(90deg, #4d9eff, #2266cc)';
-  if (c >= 54) return 'linear-gradient(90deg, #ffb830, #e06000)';
-  return 'linear-gradient(90deg, #ff4466, #cc1133)';
+function cg(c){
+  if(c>=80) return 'linear-gradient(90deg,#b8ff5a,#8fcc3a)';
+  if(c>=65) return 'linear-gradient(90deg,#5af0ff,#2299cc)';
+  if(c>=45) return 'linear-gradient(90deg,#ffcc44,#cc8800)';
+  if(c>=30) return 'linear-gradient(90deg,#ff8855,#cc4422)';
+  return 'linear-gradient(90deg,#ff4d6a,#cc1133)';
 }
 
-function recStyle(rec) {
-  if (rec.includes('STRONG')) return { bg: 'rgba(0,255,163,0.1)', border: 'rgba(0,255,163,0.3)', color: 'var(--green)' };
-  if (rec.includes('BUY'))    return { bg: 'rgba(0,255,163,0.07)', border: 'rgba(0,255,163,0.2)', color: 'var(--green-dim)' };
-  if (rec.includes('SMALL'))  return { bg: 'rgba(255,184,48,0.08)', border: 'rgba(255,184,48,0.25)', color: 'var(--amber)' };
-  return { bg: 'rgba(255,68,102,0.08)', border: 'rgba(255,68,102,0.25)', color: 'var(--red)' };
+function sc(s){
+  if(s>=8) return 'var(--lime)';
+  if(s>=6) return '#aadd66';
+  if(s>=4) return 'var(--amber)';
+  if(s>=2) return '#ff8855';
+  return 'var(--rose)';
 }
 
-function s(n) { return n >= 0 ? '+' : ''; }
-
-function isNeg(r) {
-  return /below|avoid|bearish|drawdown|overbought|underperform|negative|penalty/i.test(r);
+function vs(v){
+  const m={
+    'Strong Buy': {bg:'rgba(184,255,90,.1)',  border:'rgba(184,255,90,.3)',  col:'var(--lime)'},
+    'Buy':        {bg:'rgba(90,240,255,.08)', border:'rgba(90,240,255,.2)',  col:'var(--cyan)'},
+    'Neutral':    {bg:'rgba(255,204,68,.07)', border:'rgba(255,204,68,.2)',  col:'var(--amber)'},
+    'Sell':       {bg:'rgba(255,136,85,.07)', border:'rgba(255,136,85,.2)',  col:'#ff8855'},
+    'Strong Sell':{bg:'rgba(255,77,106,.08)', border:'rgba(255,77,106,.25)', col:'var(--rose)'},
+  };
+  return m[v]||m['Neutral'];
 }
 
-/* ── RENDER FULL RESULT ── */
-function renderResult(d) {
-  const col = cColor(d.conviction);
-  const rs = recStyle(d.recommendation);
+function ef(flag){
+  if(flag==='Good Entry')      return {bg:'rgba(184,255,90,.08)',border:'rgba(184,255,90,.2)',col:'var(--lime)',icon:'✓'};
+  if(flag==='Wait for Pullback') return {bg:'rgba(255,204,68,.07)',border:'rgba(255,204,68,.2)',col:'var(--amber)',icon:'⏳'};
+  return {bg:'rgba(90,240,255,.07)',border:'rgba(90,240,255,.2)',col:'var(--cyan)',icon:'↗'};
+}
 
-  const reasons = (d.signal_reasons || []).map(r => {
-    const neg = isNeg(r);
-    return `<div class="reason ${neg ? 'neg' : 'pos'}">
-      <div class="reason-icon">${neg ? '↓' : '↑'}</div>
-      <div>${r}</div>
-    </div>`;
-  }).join('');
+function sgn(n){return n>=0?'+':''}
 
-  const tfs = [d.tf_short, d.tf_mid, d.tf_long].map(tf => {
-    const c = tf.sharpe > 0.5 ? 'var(--green)' : tf.sharpe > 0 ? 'var(--text)' : 'var(--red)';
-    return `<div class="tf-card">
-      <div class="tf-period">${tf.label}</div>
-      <div class="tf-sharpe" style="color:${c}">${s(tf.sharpe)}${tf.sharpe}</div>
-      <div class="tf-wr">${tf.win_rate}% win</div>
-    </div>`;
-  }).join('');
+// ── METRIC BAR ──
+function mbar(score){
+  return `<div class="mr-bar"><div class="mr-bar-fill" style="width:${score*10}%;background:${sc(score)}"></div></div>`;
+}
 
-  const fundRows = [
-    d.pe          ? `<div class="fund-row"><span class="fund-label">P/E (TTM)</span><span class="fund-val">${d.pe}×</span></div>` : '',
-    d.fwd_pe      ? `<div class="fund-row"><span class="fund-label">Forward P/E</span><span class="fund-val">${d.fwd_pe}×</span></div>` : '',
-    d.revenue_growth != null ? `<div class="fund-row"><span class="fund-label">Revenue Growth</span><span class="fund-val ${d.revenue_growth >= 0 ? 'g' : 'r'}">${s(d.revenue_growth)}${d.revenue_growth}%</span></div>` : '',
-    d.profit_margin != null  ? `<div class="fund-row"><span class="fund-label">Net Margin</span><span class="fund-val">${d.profit_margin}%</span></div>` : '',
-    `<div class="fund-row"><span class="fund-label">Analyst Upside</span><span class="fund-val ${d.analyst_target_upside >= 0 ? 'g' : 'r'}">${s(d.analyst_target_upside)}${d.analyst_target_upside}%</span></div>`,
-    `<div class="fund-row"><span class="fund-label">MACD Trend</span><span class="fund-val ${d.macd_trend === 'bullish' ? 'g' : 'r'}">${(d.macd_trend||'').toUpperCase()}</span></div>`,
-    `<div class="fund-row"><span class="fund-label">1-Year Projection</span><span class="fund-val g">$${d.projected_1yr_price} (${s(d.projected_1yr_gain_pct)}${d.projected_1yr_gain_pct}%)</span></div>`,
-  ].filter(Boolean).join('');
-
-  return `
-  <div class="hero">
-    <div class="hero-top">
-      <div class="hero-left">
-        <div class="h-ticker">${d.ticker}</div>
-        <div class="h-price">$${d.current_price.toLocaleString()}</div>
-      </div>
-      <div class="h-conviction">
-        <div class="h-conv-label">CONVICTION</div>
-        <div class="h-conv-num" style="color:${col}">${d.conviction}</div>
-      </div>
-    </div>
-    <div class="conv-bar-wrap">
-      <div class="conv-bar-fill" style="width:${d.conviction}%;background:${cGradient(d.conviction)}"></div>
-    </div>
-    <div class="rec-pill" style="background:${rs.bg};border:1px solid ${rs.border};color:${rs.color}">
-      ${d.recommendation}
-    </div>
-    <div class="pos-strip">
-      <div class="pos-chip">
-        <div class="pc-label">POSITION</div>
-        <div class="pc-val" style="color:${col}">${d.position_pct > 0 ? d.position_pct + '%' : '—'}</div>
-      </div>
-      <div class="pos-chip">
-        <div class="pc-label">RISK</div>
-        <div class="pc-val">${d.risk_level}</div>
-      </div>
-      <div class="pos-chip">
-        <div class="pc-label">VOLATILITY</div>
-        <div class="pc-val">${d.volatility_annualised}%</div>
-      </div>
-      <div class="pos-chip">
-        <div class="pc-label">MAX DD</div>
-        <div class="pc-val ${d.max_drawdown < -35 ? 'r' : 'm'}">${d.max_drawdown}%</div>
-      </div>
-    </div>
-  </div>
-
-  ${reasons ? `<div class="section">
-    <div class="sec-title">SIGNAL DRIVERS</div>
-    ${reasons}
-  </div>` : ''}
-
-  <div class="section">
-    <div class="sec-title">PERFORMANCE vs SPY</div>
-    <div class="tf-grid">${tfs}</div>
-  </div>
-
-  <div class="section">
-    <div class="sec-title">QUANT STATS</div>
-    <div class="stats-grid">
-      <div class="stat">
-        <div class="stat-label">Wilson Score</div>
-        <div class="stat-val">${d.wilson_score}</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Win Rate vs SPY</div>
-        <div class="stat-val">${d.win_rate}%</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Sharpe Ratio</div>
-        <div class="stat-val ${d.sharpe > 0 ? 'g' : 'r'}">${d.sharpe}</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">RSI (14)</div>
-        <div class="stat-val ${d.rsi < 35 ? 'g' : d.rsi > 70 ? 'a' : ''}">${d.rsi}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="sec-title">FUNDAMENTALS & OUTLOOK</div>
-    ${fundRows}
+// ── RENDER METRICS SECTION ──
+function metricsSection(title, metrics, raws){
+  const rawMap = {
+    'RSI':              raws.rsi+'',
+    'MACD':             raws.macd_hist+'',
+    'Rate of Change':   raws.roc_pct+'%',
+    'OBV Trend':        '—',
+    '20d Momentum':     raws.mom_20d_pct+'%',
+    'vs MA50':          '$'+raws.ma50,
+    'vs MA200':         '$'+raws.ma200,
+    'MA Cross':         raws.ma50>raws.ma200?'Golden':'Death',
+    'ADX Strength':     raws.adx+'',
+    '52w Range':        '$'+raws['52w_low']+'–'+raws['52w_high'],
+    'Sharpe (1yr)':     raws.sharpe+'',
+    'Sortino (1yr)':    raws.sortino+'',
+    'Max Drawdown':     raws.max_dd_pct+'%',
+    'Volatility':       raws.vol_pct+'%',
+    'Beta vs SPY':      raws.beta+'',
+    'Alpha 3m':         sgn(raws.alpha_3m)+raws.alpha_3m+'%',
+    'Alpha 6m':         sgn(raws.alpha_6m)+raws.alpha_6m+'%',
+    'Alpha 1yr':        sgn(raws.alpha_1y)+raws.alpha_1y+'%',
+    'Excess Consistency':'—',
+    'Win Rate vs SPY':  raws.win_rate+'%',
+  };
+  const rows = Object.entries(metrics).map(([k,v])=>`
+    <div class="metric-row">
+      <div class="mr-name">${k}</div>
+      <div class="mr-raw fog">${rawMap[k]||'—'}</div>
+      ${mbar(v)}
+      <div class="mr-score" style="color:${sc(v)}">${v}</div>
+    </div>`).join('');
+  return `<div class="card">
+    <div class="card-title">${title}</div>
+    ${rows}
   </div>`;
 }
 
-/* ── ANALYZE ── */
-async function go(ticker) {
-  ticker = (ticker || document.getElementById('tickerInput').value).trim().toUpperCase();
-  if (!ticker) return;
-  document.getElementById('tickerInput').value = ticker;
-  const el = document.getElementById('result');
-  el.style.display = 'block';
-  el.innerHTML = `<div class="loading"><div class="loading-spinner"></div>Analyzing ${ticker}…</div>`;
-  try {
-    const r = await fetch(`${API}/signal/${ticker}`);
-    if (!r.ok) throw 0;
-    const d = await r.json();
-    el.innerHTML = renderResult(d);
-  } catch {
-    el.innerHTML = `<div class="err">Could not analyze ${ticker}.<br>Backend may be waking up — try again in 30s.</div>`;
+// ── RENDER FULL RESULT ──
+function renderResult(d){
+  const col = cc(d.conviction);
+  const vst = vs(d.verdict);
+  const efs = ef(d.entry_flag);
+
+  const cats = [
+    {name:'MOMENTUM', score:d.momentum_score, key:'momentum'},
+    {name:'TREND',    score:d.trend_score,    key:'trend'},
+    {name:'RISK',     score:d.risk_score,     key:'risk'},
+    {name:'REL STR',  score:d.rs_score,       key:'rs'},
+  ];
+
+  const catBoxes = cats.map(c=>`
+    <div class="cat-box">
+      <div class="cat-name">${c.name}</div>
+      <div class="cat-score" style="color:${cc(c.score)}">${c.score}</div>
+      <div class="cat-bar"><div class="cat-bar-fill" style="width:${c.score}%;background:${cg(c.score)}"></div></div>
+    </div>`).join('');
+
+  const warnings = (d.warnings||[]).map(w=>`
+    <div class="warning-item">${w}</div>`).join('');
+
+  const metricSections = Object.entries(d.metrics).map(([cat,metrics])=>
+    metricsSection(cat, metrics, d.raw)
+  ).join('');
+
+  const pct = d.percentile!=null ? `<div class="entry-flag" style="background:rgba(255,255,255,.04);border:1px solid var(--wire2);color:var(--fog)">BEATS ${d.percentile}% OF S&P BASKET</div>` : '';
+
+  return `
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-top">
+      <div class="ht-left">
+        <div class="h-ticker">${d.ticker}</div>
+        <div class="h-price">$${d.price.toLocaleString()}</div>
+      </div>
+      <div class="ht-right">
+        <div class="cv-label">CONVICTION</div>
+        <div class="cv-num" style="color:${col}">${d.conviction}</div>
+      </div>
+    </div>
+    <div class="cbar"><div class="cbar-fill" style="width:${d.conviction}%;background:${cg(d.conviction)}"></div></div>
+    <div class="verdict" style="background:${vst.bg};border:1px solid ${vst.border};color:${vst.col}">${d.verdict.toUpperCase()}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div class="entry-flag" style="background:${efs.bg};border:1px solid ${efs.border};color:${efs.col}">${efs.icon} ${d.entry_flag.toUpperCase()}</div>
+      ${pct}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">CATEGORY SCORES</div>
+    <div class="cats">${catBoxes}</div>
+  </div>
+
+  ${warnings ? `<div class="card">
+    <div class="card-title">WARNING FLAGS</div>
+    ${warnings}
+  </div>` : ''}
+
+  ${metricSections}`;
+}
+
+// ── ANALYZE ──
+async function analyze(ticker){
+  ticker=(ticker||document.getElementById('ti').value).trim().toUpperCase();
+  if(!ticker)return;
+  document.getElementById('ti').value=ticker;
+  const el=document.getElementById('res');
+  el.style.display='block';
+  el.innerHTML=`<div class="loading"><div class="spinner"></div>Analysing ${ticker}…</div>`;
+  try{
+    const r=await fetch(`${API}/signal/${ticker}`);
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    el.innerHTML=renderResult(d);
+  }catch{
+    el.innerHTML=`<div class="err">Could not analyse ${ticker}.<br>Backend may be starting — try again in 30s.</div>`;
   }
 }
 
-/* ── TOP PICKS ── */
-async function loadPicks() {
-  const el = document.getElementById('picksContent');
-  el.innerHTML = `<div class="loading"><div class="loading-spinner"></div>Loading signals…</div>`;
-  try {
-    const r = await fetch(`${API}/top`);
-    if (!r.ok) throw 0;
-    const data = await r.json();
-    el.innerHTML = data.top.map((s, i) => {
-      const col = cColor(s.conviction);
-      return `<div class="pick" style="animation-delay:${i*0.06}s" onclick="goAnalyze('${s.ticker}')">
-        <div class="pick-bar" style="width:${s.conviction}%;background:${cGradient(s.conviction)}"></div>
+// ── TOP PICKS ──
+async function loadPicks(){
+  const el=document.getElementById('pks');
+  el.innerHTML=`<div class="loading"><div class="spinner"></div>Loading signals…</div>`;
+  try{
+    const r=await fetch(`${API}/top`);
+    if(!r.ok)throw 0;
+    const data=await r.json();
+    el.innerHTML=`<div class="refresh-status">Last refresh: ${data.last_refresh?new Date(data.last_refresh).toLocaleString():'—'} · ${data.total} stocks</div>`+
+    data.top.map((s,i)=>{
+      const col=cc(s.conviction);
+      return `<div class="pick" style="animation-delay:${i*.05}s" onclick="goAnalyze('${s.ticker}')">
+        <div class="pick-stripe" style="width:${s.conviction}%;background:${cg(s.conviction)}"></div>
         <div class="pick-rank">#${i+1}</div>
         <div class="pick-info">
           <div class="pick-ticker">${s.ticker}</div>
-          <div class="pick-price">$${s.current_price}</div>
-          <div class="pick-rec">${s.recommendation.replace(/[🔥✅⚠️❌]/g,'').trim()}</div>
+          <div class="pick-price">$${s.price}</div>
+          <div class="pick-verdict">${s.verdict}</div>
+          ${s.percentile!=null?`<div class="pick-pct">Top ${100-s.percentile}% of basket</div>`:''}
         </div>
-        <div class="pick-score">
-          <div class="pick-num" style="color:${col}">${s.conviction}</div>
-          <div class="pick-badge">CONVICTION</div>
+        <div class="pick-right">
+          <div class="pick-cv" style="color:${col}">${s.conviction}</div>
+          <div class="pick-label">CONVICTION</div>
         </div>
       </div>`;
     }).join('');
-  } catch {
-    el.innerHTML = `<div class="err">Failed to load picks. Backend may be waking up.</div>`;
+  }catch{
+    el.innerHTML=`<div class="err">Failed to load picks.<br>Backend may be starting up.</div>`;
   }
 }
 
-/* ── SCAN ── */
-async function runScan() {
-  const raw = document.getElementById('scanInput').value.trim().toUpperCase();
-  if (!raw) return;
-  const el = document.getElementById('scanOut');
-  el.innerHTML = `<div class="loading"><div class="loading-spinner"></div>Scanning…</div>`;
-  try {
-    const r = await fetch(`${API}/scan?tickers=${encodeURIComponent(raw)}`);
-    if (!r.ok) throw 0;
-    const data = await r.json();
-    if (!data.results.length) { el.innerHTML = `<div class="err">No results.</div>`; return; }
-    el.innerHTML = `<div class="scan-table-wrap"><table>
+// ── SCAN ──
+async function scan(){
+  const raw=document.getElementById('si').value.trim().toUpperCase();
+  if(!raw)return;
+  const el=document.getElementById('sout');
+  el.innerHTML=`<div class="loading"><div class="spinner"></div>Scanning…</div>`;
+  try{
+    const r=await fetch(`${API}/scan?tickers=${encodeURIComponent(raw)}`);
+    if(!r.ok)throw 0;
+    const data=await r.json();
+    if(!data.results.length){el.innerHTML=`<div class="err">No results.</div>`;return}
+    el.innerHTML=`<div class="stable-wrap"><table>
       <thead><tr>
-        <th>TICKER</th><th>PRICE</th><th>CONVICTION</th><th>SIGNAL</th><th>SHARPE</th><th>SIZE</th>
+        <th>TICKER</th><th>PRICE</th><th>CONVICTION</th><th>VERDICT</th>
+        <th>SHARPE</th><th>VOL</th><th>ENTRY</th>
       </tr></thead>
-      <tbody>${data.results.map(s => `
+      <tbody>${data.results.map(s=>`
         <tr onclick="goAnalyze('${s.ticker}')">
-          <td style="font-weight:700">${s.ticker}</td>
-          <td class="m">$${s.current_price}</td>
-          <td style="color:${cColor(s.conviction)};font-weight:700">${s.conviction}</td>
-          <td style="font-size:0.7rem">${s.recommendation.replace(/[🔥✅⚠️❌]/g,'').trim()}</td>
-          <td class="${s.sharpe > 0 ? 'g' : 'r'}">${s.sharpe}</td>
-          <td class="${s.position_pct > 0 ? 'g' : 'm'}">${s.position_pct > 0 ? s.position_pct+'%' : '—'}</td>
+          <td style="font-weight:700;color:var(--snow)">${s.ticker}</td>
+          <td class="fog">$${s.price}</td>
+          <td style="color:${cc(s.conviction)};font-weight:700">${s.conviction}</td>
+          <td style="font-size:.65rem;color:${vs(s.verdict).col}">${s.verdict}</td>
+          <td class="${s.raw.sharpe>=0?'lime':'rose'}">${s.raw.sharpe}</td>
+          <td class="fog">${s.raw.vol_pct}%</td>
+          <td style="font-size:.62rem;color:${ef(s.entry_flag).col}">${s.entry_flag}</td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
-  } catch {
-    el.innerHTML = `<div class="err">Scan failed. Try again.</div>`;
+  }catch{
+    el.innerHTML=`<div class="err">Scan failed. Try again.</div>`;
   }
 }
 
-function goAnalyze(ticker) {
-  switchTab('analyze');
-  go(ticker);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+// ── MANUAL REFRESH ──
+async function manualRefresh(){
+  const btn=document.querySelector('.refresh-btn');
+  btn.textContent='REFRESHING…';
+  btn.style.color='var(--lime)';
+  try{
+    await fetch(`${API}/refresh`,{method:'POST'});
+    setTimeout(()=>{
+      btn.textContent='↻ REFRESH BASKET';
+      btn.style.color='';
+      // reload picks if on that tab
+      if(document.getElementById('pg-picks').classList.contains('on')) loadPicks();
+    },3000);
+  }catch{
+    btn.textContent='↻ REFRESH BASKET';
+    btn.style.color='';
+  }
+}
+
+function goAnalyze(t){
+  go('analyze');
+  analyze(t);
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 </script>
 </body>
