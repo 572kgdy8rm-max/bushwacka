@@ -4,6 +4,7 @@ All signals derived from price/volume data only. No news, no analyst targets.
 """
 
 import numpy as np
+import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
 
@@ -59,20 +60,26 @@ def macd_hist(closes):
     return (m - sig).iloc[-1], m.iloc[-1], sig.iloc[-1]
 
 def adx(df, period=14):
-    h, l, c = df["High"], df["Low"], df["Close"]
-    prev_c  = c.shift(1)
-    tr      = np.maximum(h - l, np.maximum(abs(h - prev_c), abs(l - prev_c)))
-    pdm     = np.where((h - h.shift(1)) > (l.shift(1) - l), np.maximum(h - h.shift(1), 0), 0)
-    ndm     = np.where((l.shift(1) - l) > (h - h.shift(1)), np.maximum(l.shift(1) - l, 0), 0)
     import pandas as pd
-    atr     = pd.Series(tr).ewm(span=period).mean()
-    pdi     = 100 * pd.Series(pdm).ewm(span=period).mean() / atr
-    ndi     = 100 * pd.Series(ndm).ewm(span=period).mean() / atr
-    dx      = 100 * abs(pdi - ndi) / (pdi + ndi).replace(0, np.nan)
-    return dx.ewm(span=period).mean().iloc[-1]
+    h = df["High"].reset_index(drop=True)
+    l = df["Low"].reset_index(drop=True)
+    c = df["Close"].reset_index(drop=True)
+
+    prev_c  = c.shift(1)
+    prev_h  = h.shift(1)
+    prev_l  = l.shift(1)
+
+    tr  = pd.concat([h - l, (h - prev_c).abs(), (l - prev_c).abs()], axis=1).max(axis=1)
+    pdm = ((h - prev_h) > (prev_l - l)).astype(float) * (h - prev_h).clip(lower=0)
+    ndm = ((prev_l - l) > (h - prev_h)).astype(float) * (prev_l - l).clip(lower=0)
+
+    atr = tr.ewm(span=period, adjust=False).mean()
+    pdi = 100 * pdm.ewm(span=period, adjust=False).mean() / atr.replace(0, np.nan)
+    ndi = 100 * ndm.ewm(span=period, adjust=False).mean() / atr.replace(0, np.nan)
+    dx  = 100 * (pdi - ndi).abs() / (pdi + ndi).replace(0, np.nan)
+    return dx.ewm(span=period, adjust=False).mean().iloc[-1]
 
 def obv_slope(df, window=20):
-    import pandas as pd
     direction = np.sign(df["Close"].diff())
     obv       = (direction * df["Volume"]).cumsum()
     x         = np.arange(window)
