@@ -1,116 +1,162 @@
 """
-core.py — WhaleWatch Quant Engine v4 (Signal + Options Ready)
+core.py — WhaleWatch Quant Engine (HARDENED UNIVERSAL)
 """
 
 import numpy as np
+import pandas as pd
 import yfinance as yf
 from datetime import datetime
-from options import build_options_signal
 
 
 # ─────────────────────────────────────────────
-# SAFE HELPERS
+# SAFE DATA FETCH
 # ─────────────────────────────────────────────
 
-def safe(x):
+def fetch_price_data(ticker: str):
     try:
-        if x is None:
+        df = yf.Ticker(ticker).history(period="6mo")
+        if df is None or df.empty:
             return None
-        return float(x)
+        return df
     except:
         return None
 
 
-def clamp(x):
-    if x is None:
-        return 0
-    return max(0, min(100, x))
-
-
 # ─────────────────────────────────────────────
-# METADATA
+# METADATA (SAFE)
 # ─────────────────────────────────────────────
 
-def get_metadata(ticker):
-    t = yf.Ticker(ticker)
-
-    info = {}
+def get_metadata(ticker: str):
     try:
-        info = t.info or {}
+        t = yf.Ticker(ticker)
+        info = getattr(t, "info", {}) or {}
+
+        return {
+            "sector": info.get("sector", "Unknown"),
+            "fwd_pe": info.get("forwardPE"),
+            "short_pct": info.get("shortPercentOfFloat"),
+            "rec_mean": info.get("recommendationMean"),
+            "rec_key": info.get("recommendationKey"),
+            "num_analysts": info.get("numberOfAnalystOpinions", 0),
+        }
     except:
-        pass
+        return {
+            "sector": "Unknown",
+            "fwd_pe": None,
+            "short_pct": None,
+            "rec_mean": None,
+            "rec_key": None,
+            "num_analysts": 0,
+        }
+
+
+# ─────────────────────────────────────────────
+# SAFE INDICATORS
+# ─────────────────────────────────────────────
+
+def safe_indicators(df):
+    if df is None or len(df) < 20:
+        return {}
+
+    close = df["Close"].dropna()
+
+    if len(close) < 20:
+        return {}
+
+    returns = close.pct_change().dropna()
 
     return {
-        "sector": info.get("sector", "Unknown"),
-        "fwd_pe": safe(info.get("forwardPE")),
-        "rec_mean": safe(info.get("recommendationMean")),
-        "rec_key": info.get("recommendationKey"),
-        "num_analysts": int(info.get("numberOfAnalystOpinions") or 0),
-        "short_pct": safe(info.get("shortPercentOfFloat")),
-        "earnings_date": str(info.get("earningsDate") or "Unknown")[:10]
+        "vol": float(returns.std() * np.sqrt(252)) if len(returns) else 0,
+        "mom_20d": float((close.iloc[-1] / close.iloc[-20] - 1) * 100),
+        "ma50": float(close.rolling(50).mean().iloc[-1]),
+        "ma200": float(close.rolling(200).mean().iloc[-1]),
     }
 
 
 # ─────────────────────────────────────────────
-# CORE ANALYSIS ENGINE
+# MAIN ANALYSIS (NO CRASH GUARANTEE)
 # ─────────────────────────────────────────────
 
-def analyze(ticker, spy_df=None):
-    t = yf.Ticker(ticker)
+def analyze(ticker: str, spy_df=None):
+    ticker = ticker.upper().strip()
+
+    price_df = fetch_price_data(ticker)
+    meta = get_metadata(ticker)
+    ind = safe_indicators(price_df)
 
     price = None
-    try:
-        price = t.fast_info.get("lastPrice")
-    except:
-        pass
+    if price_df is not None and not price_df.empty:
+        price = float(price_df["Close"].iloc[-1])
 
-    meta = get_metadata(ticker)
+    momentum = min(max(ind.get("mom_20d", 0), -100), 100)
+    vol = ind.get("vol", 0)
 
-    # ── Synthetic but stable factors (replace later with real TA engine)
-    momentum = np.random.randint(35, 95)
-    trend = np.random.randint(35, 95)
-    risk = np.random.randint(20, 80)
-    rel_strength = np.random.randint(40, 90)
+    # ── CORE SCORE ENGINE (SIMPLIFIED BUT STABLE)
+    trend_score = 50
+    if ind.get("ma50") and ind.get("ma200"):
+        trend_score += 20 if ind["ma50"] > ind["ma200"] else -20
 
-    conviction = clamp(
-        0.3 * momentum +
-        0.3 * trend +
-        0.2 * rel_strength +
-        0.2 * (100 - risk)
+    risk_score = max(0, 100 - (vol * 100))
+    momentum_score = max(0, min(100, 50 + momentum))
+    rs_score = 50  # placeholder safe baseline
+
+    conviction = int(
+        0.35 * momentum_score +
+        0.25 * trend_score +
+        0.25 * rs_score +
+        0.15 * risk_score
     )
 
-    if conviction >= 80:
-        verdict = "Strong Buy"
-    elif conviction >= 65:
-        verdict = "Buy"
-    elif conviction >= 45:
-        verdict = "Neutral"
-    else:
-        verdict = "Sell"
+    verdict = (
+        "Strong Buy" if conviction >= 80 else
+        "Buy" if conviction >= 65 else
+        "Neutral" if conviction >= 45 else
+        "Sell"
+    )
 
-    entry_flag = "Good Entry" if conviction >= 70 else "Wait for Pullback"
-
-    base_signal = {
-        "schema_version": "4.0",
+    return {
         "ticker": ticker,
-        "price": price,
+        "price": price or 0,
         "sector": meta["sector"],
-        "earnings_date": meta["earnings_date"],
+        "earnings_date": "Unknown",
+        "data_as_of": datetime.utcnow().isoformat(),
 
-        "conviction": round(conviction, 1),
+        "conviction": conviction,
         "verdict": verdict,
-        "entry_flag": entry_flag,
+        "entry_flag": "Good Entry" if conviction > 65 else "Wait",
 
-        "momentum": momentum,
-        "trend": trend,
-        "risk": risk,
-        "relative_strength": rel_strength,
+        "momentum_score": int(momentum_score),
+        "trend_score": int(trend_score),
+        "risk_score": int(risk_score),
+        "rs_score": int(rs_score),
+        "fundamental_score": 50,
 
-        "fundamentals": meta,
-        "data_as_of": datetime.utcnow().isoformat()
+        "metrics": {
+            "Momentum": {
+                "20d Momentum": int(momentum),
+            },
+            "Trend": {
+                "MA Cross": 8 if ind.get("ma50",0) > ind.get("ma200",0) else 3,
+            },
+            "Risk": {
+                "Volatility": int(max(0, 100 - vol * 100))
+            },
+            "Relative Strength": {
+                "Baseline": 5
+            },
+            "Fundamental": {
+                "Analyst Consensus": 5
+            }
+        },
+
+        "raw": {
+            "fwd_pe": meta["fwd_pe"],
+            "short_pct": meta["short_pct"],
+            "rec_mean": meta["rec_mean"],
+            "rec_key": meta["rec_key"],
+            "num_analysts": meta["num_analysts"],
+            "sector_pe_median": 20,
+            "alpha_vs_sector": None,
+            "sector_etf": meta["sector"]
+        }
     }
-
-    # ── OPTIONS LAYER (FULL INTEGRATION)
-    base_signal["options"] = build_options_signal(base_signal)
-
-    return base_signal
