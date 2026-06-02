@@ -97,62 +97,97 @@ def fetch(ticker: str):
     return df
 
 def get_metadata(ticker: str) -> dict:
+    EMPTY = {
+        "sector":        "Unknown",
+        "earnings_date": "Unknown",
+        "fwd_pe":        None,
+        "short_pct":     None,
+        "rec_mean":      None,
+        "rec_key":       None,
+        "num_analysts":  0,
+    }
     try:
-        info   = yf.Ticker(ticker).info
-        sector = info.get("sector") or info.get("sectorDisp") or "Unknown"
+        t    = yf.Ticker(ticker)
+        info = t.fast_info  # faster, more reliable than .info for price data
 
-        # Earnings date
-        cal      = yf.Ticker(ticker).calendar
-        earnings = None
-        if cal is not None and not cal.empty:
-            try:
-                earnings = str(cal.columns[0].date()) if hasattr(cal.columns[0], 'date') else str(cal.iloc[0, 0])
-            except:
-                earnings = None
-        if not earnings:
-            earnings = info.get("earningsDate") or info.get("nextEarningsDate") or "Unknown"
-            if hasattr(earnings, '__iter__') and not isinstance(earnings, str):
-                try:    earnings = str(list(earnings)[0])
-                except: earnings = "Unknown"
-            earnings = str(earnings)
+        # Fall back to full info for fundamental fields
+        full = {}
+        try:
+            full = t.info or {}
+        except:
+            pass
 
-        # Forward P/E
-        fwd_pe = info.get("forwardPE") or info.get("trailingPE") or None
-        if fwd_pe:
-            try:    fwd_pe = float(fwd_pe)
-            except: fwd_pe = None
+        # ── Sector ──────────────────────────────────────────────────────
+        sector = (
+            full.get("sector") or
+            full.get("sectorDisp") or
+            full.get("sectorKey") or
+            "Unknown"
+        )
 
-        # Short interest (% of float)
-        short_pct = info.get("shortPercentOfFloat") or None
-        if short_pct:
-            try:    short_pct = float(short_pct) * 100   # convert 0.03 → 3.0%
-            except: short_pct = None
+        # ── Earnings date ────────────────────────────────────────────────
+        earnings = "Unknown"
+        try:
+            cal = t.calendar
+            if cal is not None and not cal.empty:
+                # calendar is a dict in newer yfinance versions
+                if isinstance(cal, dict):
+                    ed = cal.get("Earnings Date") or cal.get("earningsDate")
+                    if ed:
+                        earnings = str(ed[0].date()) if hasattr(ed[0], 'date') else str(ed[0])
+                else:
+                    earnings = str(cal.columns[0].date()) if hasattr(cal.columns[0], 'date') else str(cal.iloc[0, 0])
+        except:
+            pass
+        if earnings == "Unknown":
+            ed = full.get("earningsDate") or full.get("nextEarningsDate")
+            if ed:
+                try:
+                    earnings = str(list(ed)[0]) if hasattr(ed, '__iter__') and not isinstance(ed, str) else str(ed)
+                except:
+                    pass
 
-        # Analyst recommendation trend (for earnings revision direction)
-        # recommendationMean: 1=Strong Buy … 5=Strong Sell
-        rec_mean = info.get("recommendationMean") or None
-        rec_key  = info.get("recommendationKey")  or None
-        num_analysts = info.get("numberOfAnalystOpinions") or 0
+        # ── Forward P/E ──────────────────────────────────────────────────
+        fwd_pe = None
+        for key in ("forwardPE", "trailingPE"):
+            raw = full.get(key)
+            if raw and isinstance(raw, (int, float)) and 0 < raw < 2000:
+                fwd_pe = round(float(raw), 1)
+                break
+
+        # ── Short interest ───────────────────────────────────────────────
+        short_pct = None
+        raw_short = full.get("shortPercentOfFloat") or full.get("shortRatio")
+        if raw_short and isinstance(raw_short, (int, float)):
+            # shortPercentOfFloat comes as 0.03 = 3%, shortRatio is different
+            val = float(raw_short)
+            if full.get("shortPercentOfFloat"):
+                short_pct = round(val * 100, 1)
+            # shortRatio is days-to-cover, not %, so skip it here
+
+        # ── Analyst consensus ────────────────────────────────────────────
+        rec_mean = None
+        rec_key  = None
+        num_analysts = 0
+        raw_rec = full.get("recommendationMean")
+        if raw_rec and isinstance(raw_rec, (int, float)):
+            rec_mean = round(float(raw_rec), 2)
+        rec_key      = full.get("recommendationKey") or None
+        num_analysts = int(full.get("numberOfAnalystOpinions") or 0)
 
         return {
-            "sector":         sector,
-            "earnings_date":  earnings,
-            "fwd_pe":         round(fwd_pe, 1) if fwd_pe else None,
-            "short_pct":      round(short_pct, 1) if short_pct else None,
-            "rec_mean":       round(rec_mean, 2) if rec_mean else None,
-            "rec_key":        rec_key,
-            "num_analysts":   num_analysts,
+            "sector":        sector,
+            "earnings_date": earnings,
+            "fwd_pe":        fwd_pe,
+            "short_pct":     short_pct,
+            "rec_mean":      rec_mean,
+            "rec_key":       rec_key,
+            "num_analysts":  num_analysts,
         }
-    except:
-        return {
-            "sector":        "Unknown",
-            "earnings_date": "Unknown",
-            "fwd_pe":        None,
-            "short_pct":     None,
-            "rec_mean":      None,
-            "rec_key":       None,
-            "num_analysts":  0,
-        }
+
+    except Exception as e:
+        print(f"  [metadata] {ticker} failed: {e}")
+        return EMPTY
 
 # ── TECHNICAL CALCULATIONS ─────────────────────────────────────────────────
 
