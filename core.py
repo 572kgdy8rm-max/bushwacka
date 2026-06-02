@@ -94,6 +94,26 @@ def fetch(ticker: str):
         raise ValueError(f"Not enough data for {ticker}")
     return df
 
+def _fetch_info_with_retry(t, retries=3, delay=2.0) -> dict:
+    """
+    Fetch t.info with retries. yfinance silently returns {} when rate-limited
+    so we check for the presence of a known key ('symbol') to detect empty responses.
+    """
+    import time
+    for attempt in range(retries):
+        try:
+            info = t.info or {}
+            if info.get("symbol") or info.get("sector") or info.get("forwardPE"):
+                return info
+            # Got an empty or near-empty dict — wait and retry
+            if attempt < retries - 1:
+                time.sleep(delay * (attempt + 1))
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(delay * (attempt + 1))
+    return {}
+
+
 def get_metadata(ticker: str) -> dict:
     EMPTY = {
         "sector":        "Unknown",
@@ -106,21 +126,23 @@ def get_metadata(ticker: str) -> dict:
     }
     try:
         t    = yf.Ticker(ticker)
-        info = t.fast_info
+        full = _fetch_info_with_retry(t)
 
-        full = {}
-        try:
-            full = t.info or {}
-        except:
-            pass
-
-        # ── Sector ──────────────────────────────────────────────────────
+        # ── Sector — try info first, then fast_info attributes ───────────
         sector = (
             full.get("sector") or
             full.get("sectorDisp") or
             full.get("sectorKey") or
-            "Unknown"
+            None
         )
+        # fast_info fallback for sector
+        if not sector:
+            try:
+                fi = t.fast_info
+                sector = getattr(fi, "sector", None)
+            except:
+                pass
+        sector = sector or "Unknown"
 
         # ── Earnings date ────────────────────────────────────────────────
         earnings = "Unknown"
@@ -156,9 +178,9 @@ def get_metadata(ticker: str) -> dict:
             try:
                 hist = t.earnings_dates
                 if hist is not None and not hist.empty:
-                    future = hist[hist.index > pd.Timestamp.now()]
+                    future = hist[hist.index > pd.Timestamp.now(tz=hist.index.tz)]
                     if not future.empty:
-                        earnings = str(future.index[-1].date())
+                        earnings = str(future.index[0].date())  # nearest upcoming
             except:
                 pass
 
