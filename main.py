@@ -1,10 +1,11 @@
 """
-main.py — WhaleWatch API (UNIVERSAL SAFE VERSION)
+main.py — WhaleWatch API
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from core import analyze
+from options import build_options_signal
 
 app = FastAPI(title="WhaleWatch Quant API")
 
@@ -24,25 +25,48 @@ def root():
 @app.get("/signal/{ticker}")
 def signal(ticker: str):
     try:
-        return analyze(ticker)
+        result = analyze(ticker)
+        result["options"] = build_options_signal(result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/scan")
 def scan(tickers: str):
+    if not tickers or not tickers.strip():
+        raise HTTPException(status_code=400, detail="No tickers provided")
+
     results = []
     for t in tickers.split(",")[:20]:
+        t = t.strip()
+        if not t:
+            continue
         try:
-            results.append(analyze(t.strip()))
+            result = analyze(t)
+            result["options"] = build_options_signal(result)
+            results.append(result)
         except:
             continue
 
     results.sort(key=lambda x: x["conviction"], reverse=True)
-
     return {"results": results}
 
 
 @app.get("/top")
 def top():
-    return {"message": "Basket system removed in universal build"}
+    watchlist = [
+        "AAPL","MSFT","NVDA","GOOGL","AMZN",
+        "META","TSLA","AVGO","JPM","V"
+    ]
+    results = []
+    for t in watchlist:
+        try:
+            result = analyze(t)
+            result["options"] = build_options_signal(result)
+            results.append(result)
+        except:
+            continue
+
+    results.sort(key=lambda x: x["conviction"], reverse=True)
+    return {"results": results[:5]}
