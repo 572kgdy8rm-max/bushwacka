@@ -1,14 +1,12 @@
 """
-main.py — WhaleWatch API v4
+main.py — WhaleWatch API (UNIVERSAL SAFE VERSION)
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from core import analyze
-from datetime import datetime
-import threading
 
-app = FastAPI(title="WhaleWatch v4")
+app = FastAPI(title="WhaleWatch Quant API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,59 +15,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASKET = ["AAPL","MSFT","NVDA","AMZN","TSLA","META","GOOGL","JPM"]
 
-state = {"cache": {}, "refreshing": False, "last": "Never"}
-lock = threading.Lock()
-
-
-def refresh():
-    with lock:
-        if state["refreshing"]:
-            return
-        state["refreshing"] = True
-
-    try:
-        out = {}
-        for t in BASKET:
-            out[t] = analyze(t)
-
-        with lock:
-            state["cache"] = out
-            state["last"] = datetime.utcnow().isoformat()
-    finally:
-        with lock:
-            state["refreshing"] = False
+@app.get("/")
+def root():
+    return {"status": "online"}
 
 
 @app.get("/signal/{ticker}")
 def signal(ticker: str):
-    return analyze(ticker)
+    try:
+        return analyze(ticker)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/options/{ticker}")
-def options(ticker: str):
-    return analyze(ticker)["options"]
+@app.get("/scan")
+def scan(tickers: str):
+    results = []
+    for t in tickers.split(",")[:20]:
+        try:
+            results.append(analyze(t.strip()))
+        except:
+            continue
+
+    results.sort(key=lambda x: x["conviction"], reverse=True)
+
+    return {"results": results}
 
 
 @app.get("/top")
 def top():
-    with lock:
-        items = list(state["cache"].values())
-
-    if not items:
-        raise HTTPException(503, "Not ready")
-
-    items.sort(key=lambda x: x["conviction"], reverse=True)
-
-    return {
-        "schema_version": "4.0",
-        "top": items,
-        "last_refresh": state["last"]
-    }
-
-
-@app.post("/refresh")
-def manual_refresh(bg: BackgroundTasks):
-    bg.add_task(refresh)
-    return {"status": "refreshing"}
+    return {"message": "Basket system removed in universal build"}
