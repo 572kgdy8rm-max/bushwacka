@@ -126,48 +126,46 @@ def get_metadata(ticker: str) -> dict:
         )
 
         # ── Earnings date ────────────────────────────────────────────────
-        # ── Earnings date ────────────────────────────────────────────────
-earnings = "Unknown"
-try:
-    cal = t.calendar
-    if cal is not None:
-        # yfinance returns dict in newer versions, DataFrame in older
-        if isinstance(cal, dict):
-            ed = cal.get("Earnings Date") or cal.get("earningsDate") or cal.get("Earnings Dates")
-            if ed:
-                # ed is usually a list
-                first = ed[0] if hasattr(ed, '__iter__') and not isinstance(ed, str) else ed
-                if hasattr(first, 'date'):
-                    earnings = str(first.date())
-                else:
+        earnings = "Unknown"
+        try:
+            cal = t.calendar
+            if cal is not None:
+                # yfinance returns dict in newer versions, DataFrame in older
+                if isinstance(cal, dict):
+                    ed = cal.get("Earnings Date") or cal.get("earningsDate") or cal.get("Earnings Dates")
+                    if ed:
+                        # ed is usually a list
+                        first = ed[0] if hasattr(ed, '__iter__') and not isinstance(ed, str) else ed
+                        if hasattr(first, 'date'):
+                            earnings = str(first.date())
+                        else:
+                            earnings = str(first)[:10]
+                elif hasattr(cal, 'empty') and not cal.empty:
+                    col = cal.columns[0]
+                    earnings = str(col.date()) if hasattr(col, 'date') else str(col)[:10]
+        except:
+            pass
+
+        # Second attempt via full info dict
+        if earnings == "Unknown":
+            try:
+                ed = full.get("earningsDate") or full.get("nextEarningsDate")
+                if ed:
+                    first = list(ed)[0] if hasattr(ed, '__iter__') and not isinstance(ed, str) else ed
                     earnings = str(first)[:10]
-        elif hasattr(cal, 'empty') and not cal.empty:
-            col = cal.columns[0]
-            earnings = str(col.date()) if hasattr(col, 'date') else str(col)[:10]
-except:
-    pass
+            except:
+                pass
 
-# Second attempt via full info dict
-if earnings == "Unknown":
-    try:
-        ed = full.get("earningsDate") or full.get("nextEarningsDate")
-        if ed:
-            first = list(ed)[0] if hasattr(ed, '__iter__') and not isinstance(ed, str) else ed
-            earnings = str(first)[:10]
-    except:
-        pass
-
-# Third attempt via earnings dates history
-if earnings == "Unknown":
-    try:
-        hist = t.earnings_dates
-        if hist is not None and not hist.empty:
-            future = hist[hist.index > pd.Timestamp.now()]
-            if not future.empty:
-                earnings = str(future.index[-1].date())
-    except:
-        pass
-
+        # Third attempt via earnings dates history
+        if earnings == "Unknown":
+            try:
+                hist = t.earnings_dates
+                if hist is not None and not hist.empty:
+                    future = hist[hist.index > pd.Timestamp.now()]
+                    if not future.empty:
+                        earnings = str(future.index[-1].date())
+            except:
+                pass
 
         # ── Forward P/E ──────────────────────────────────────────────────
         fwd_pe = None
