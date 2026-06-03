@@ -243,3 +243,4 @@ def build_options_signal(signal: dict) -> dict:
         "confidence":     conviction,
         "rationale":      struct["reason"],
     }
+ 
