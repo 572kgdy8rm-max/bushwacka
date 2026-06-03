@@ -75,4 +75,4 @@ def top():
             continue
 
     results.sort(key=lambda x: x["conviction"], reverse=True)
-    return {"results": results[:5]}
+    return {"results": results[:5]} 
