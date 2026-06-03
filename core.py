@@ -472,7 +472,7 @@ def compute_warnings(rsi_val, ma50, ma200, dd_pct, vol_pct, b, adx_val,
 # ── ENTRY FLAG ─────────────────────────────────────────────────────────────
 
 def entry_flag(rsi_val, price, ma50, bb_upper, bb_lower, mom_20):
-    extended = (price > bb_upper) or (rsi_val > 68) or (mom_20 > 0.12)
+    extended = (price > bb_upper) or (rsi_val > 72) or (mom_20 > 0.15)
     oversold = (price < bb_lower) or (rsi_val < 32)
     if oversold:    return "Oversold Bounce"
     elif extended:  return "Wait for Pullback"
