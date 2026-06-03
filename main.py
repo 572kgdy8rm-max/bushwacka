@@ -22,6 +22,12 @@ def root():
     return {"status": "online"}
 
 
+@app.get("/wake")
+def wake():
+    """Lightweight ping to wake Render from sleep before heavy requests."""
+    return {"awake": True}
+
+
 @app.get("/signal/{ticker}")
 def signal(ticker: str):
     try:
