@@ -225,6 +225,29 @@ nav{
 }
 .picks-table tbody tr:last-child td{border-bottom:none}
 
+/* ── BATCH CONTROLS ── */
+.batch-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;gap:8px;
+}
+.batch-name{
+  font-size:10px;color:var(--amber);letter-spacing:.12em;font-weight:600;flex:1;
+}
+.batch-dots{display:flex;gap:4px;align-items:center}
+.batch-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--border2);border:1px solid var(--gray2);
+  transition:all .2s;
+}
+.batch-dot.active{background:var(--amber);border-color:var(--amber)}
+.rotate-btn{
+  font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;
+  background:none;border:1px solid var(--amber3);color:var(--amber);
+  padding:4px 10px;cursor:pointer;transition:all .1s;white-space:nowrap;
+}
+.rotate-btn:hover{background:var(--amber3);color:#000}
+.rotate-btn:disabled{opacity:.4;cursor:not-allowed}
+
 /* ── SCAN ── */
 .sinput{
   width:100%;height:32px;padding:0 10px;margin-bottom:6px;
@@ -309,7 +332,16 @@ nav{
 
 <script>
 const API = 'https://bushwacka.onrender.com';
-let lastData = null;
+let lastData    = null;
+let currentBatch = 0;
+const TOTAL_BATCHES = 5;
+const BATCH_NAMES = [
+  'TECHNOLOGY',
+  'FINANCIALS & HEALTHCARE',
+  'ENERGY & INDUSTRIALS',
+  'CONSUMER & COMMS',
+  'WILDCARDS',
+];
 
 // ── CLOCK ──────────────────────────────────────────────────────────────────
 function updateClock(){
@@ -326,7 +358,7 @@ function go(t){
     document.querySelectorAll('.tab')[i].classList.toggle('on', id===t);
     document.getElementById('pg-'+id).classList.toggle('on', id===t);
   });
-  if(t==='picks' && !document.querySelector('.picks-table')) loadPicks();
+  if(t==='picks' && !document.querySelector('.picks-table')) loadPicks(currentBatch);
 }
 
 // ── COLOR HELPERS ──────────────────────────────────────────────────────────
@@ -414,7 +446,7 @@ function metricBlock(name, score, metrics, raws, openByDefault){
 
 // ── FUNDAMENTAL BLOCK ──────────────────────────────────────────────────────
 function fundamentalBlock(d){
-  const r = d.raw;
+  const r  = d.raw;
   const fs = d.fundamental_score;
   const cells = [
     {
@@ -459,9 +491,6 @@ function renderResult(d){
   const sz   = d.position_size || {};
   const szCol= sz.pct > 0 ? 'var(--green)' : 'var(--gray)';
 
-  const pctBadge = d.percentile != null
-    ? '<span style="font-size:10px;color:var(--gray)"> · BEATS '+d.percentile+'% OF BASKET</span>' : '';
-
   const warns = (d.warnings||[]).length
     ? '<div class="warn-block">'+
         '<div class="warn-header">WARNING FLAGS</div>'+
@@ -477,7 +506,6 @@ function renderResult(d){
   ];
 
   return (
-    // Header
     '<div class="r-header">'+
       '<div>'+
         '<div class="r-ticker">'+d.ticker+'</div>'+
@@ -495,13 +523,11 @@ function renderResult(d){
       '</div>'+
     '</div>'+
 
-    // Conviction bar
     '<div class="cv-bar-row">'+
       '<div class="cv-bar-label"><span>0</span><span>CONVICTION</span><span>100</span></div>'+
       '<div class="cv-bar-track"><div class="cv-bar-fill" style="width:'+d.conviction+'%;background:'+col+'"></div></div>'+
     '</div>'+
 
-    // Status row
     '<div class="status-row">'+
       '<div class="status-box">'+
         '<div class="sb-label">ENTRY SIGNAL</div>'+
@@ -510,20 +536,15 @@ function renderResult(d){
       '<div class="status-box">'+
         '<div class="sb-label">POSITION SIZE</div>'+
         '<div class="sb-value" style="color:'+szCol+'">'+(sz.label||'—').toUpperCase()+'</div>'+
-        (d.percentile!=null?'<div style="font-size:9px;color:var(--gray);margin-top:2px">BEATS '+d.percentile+'% OF BASKET</div>':'')+
       '</div>'+
     '</div>'+
 
-    // Copy button
     '<button class="copy-btn" onclick="copyReport()">COPY FULL REPORT FOR AI OVERLAY</button>'+
 
-    // Warnings
     warns +
 
-    // Category blocks
     cats.map((c,i)=>metricBlock(c.name, c.score, d.metrics[c.key]||{}, d.raw, i===0)).join('')+
 
-    // Fundamental overlay
     fundamentalBlock(d)
   );
 }
@@ -547,7 +568,6 @@ function buildReport(d){
     '',
     'CONVICTION: '+d.conviction+'/100   |   VERDICT: '+d.verdict,
     'ENTRY FLAG: '+d.entry_flag+'   |   POSITION SIZE: '+(sz.label||'—'),
-    d.percentile!=null ? 'PERCENTILE: Beats '+d.percentile+'% of S&P basket' : '',
     '',
     'CATEGORY SCORES',
     '  Momentum:            '+d.momentum_score+'/100',
@@ -571,7 +591,7 @@ function buildReport(d){
     '',
     'FUNDAMENTAL OVERLAY',
     rows(d.metrics['Fundamental']||{}),
-    '  Fwd P/E:             '+( r.fwd_pe!=null ? r.fwd_pe+'x (sector median: '+r.sector_pe_median+'x)' : 'N/A'),
+    '  Fwd P/E:             '+(r.fwd_pe!=null ? r.fwd_pe+'x (sector median: '+r.sector_pe_median+'x)' : 'N/A'),
     '  Analyst Consensus:   '+(r.rec_key ? r.rec_key.toUpperCase()+' ('+r.rec_mean+'/5.0, '+r.num_analysts+' analysts)' : 'N/A'),
     '  Short Interest:      '+(r.short_pct!=null ? r.short_pct+'% of float' : 'N/A'),
     '  Sector Alpha 3m:     '+(r.alpha_vs_sector!=null ? (r.alpha_vs_sector>=0?'+':'')+r.alpha_vs_sector+'% vs '+(r.sector_etf||'sector ETF') : 'N/A'),
@@ -616,44 +636,69 @@ async function analyze(ticker){
 }
 
 // ── PICKS ──────────────────────────────────────────────────────────────────
-async function loadPicks(){
+function renderBatchBar(batchIndex, batchName){
+  const dots = Array.from({length:TOTAL_BATCHES},(_,i)=>
+    '<div class="batch-dot'+(i===batchIndex?' active':'')+'"></div>'
+  ).join('');
+
+  return '<div class="batch-bar">'+
+    '<span class="batch-name">'+batchName+'</span>'+
+    '<div class="batch-dots">'+dots+'</div>'+
+    '<button class="rotate-btn" id="rotate-btn" onclick="rotateBatch()">NEXT SECTOR ›</button>'+
+  '</div>';
+}
+
+async function loadPicks(batch){
+  batch = batch ?? currentBatch;
   const el = document.getElementById('pks');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div>LOADING SIGNALS…</div>';
+  const rotBtn = document.getElementById('rotate-btn');
+  if(rotBtn) rotBtn.disabled = true;
+
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>SCANNING '+BATCH_NAMES[batch]+'…</div>';
+
   try{
-    const r    = await fetch(API+'/top');
+    const r    = await fetch(API+'/top?batch='+batch);
     if(!r.ok) throw 0;
     const data = await r.json();
 
-    const rows = data.top.map((s,i)=>{
+    currentBatch = data.batch ?? batch;
+
+    const rows = (data.results||[]).map((s,i)=>{
       const col = cvColor(s.conviction);
       const vst = verdictStyle(s.verdict);
+      const efs = entryStyle(s.entry_flag);
       return '<tr onclick="goAnalyze(\''+s.ticker+'\')">'+
         '<td class="gray">#'+(i+1)+'</td>'+
         '<td style="font-weight:700;color:'+col+'">'+s.ticker+'</td>'+
         '<td>$'+s.price+'</td>'+
         '<td style="color:'+col+';font-weight:700">'+s.conviction+'</td>'+
         '<td style="color:'+vst.col+'">'+s.verdict+'</td>'+
+        '<td style="color:'+efs.col+';font-size:10px">'+s.entry_flag+'</td>'+
         '<td class="gray" style="font-size:10px">'+(s.sector||'—')+'</td>'+
-        '<td class="gray" style="font-size:10px">'+(s.earnings_date||'—')+'</td>'+
       '</tr>';
     }).join('');
 
     el.innerHTML =
-      '<div style="font-size:9px;color:var(--gray);padding:6px 0 8px;letter-spacing:.08em">'+
-        'LAST REFRESH: '+(data.last_refresh ? new Date(data.last_refresh).toLocaleString() : '—')+
-        '  ·  '+data.total+' STOCKS'+
-      '</div>'+
+      renderBatchBar(currentBatch, data.batch_name || BATCH_NAMES[currentBatch])+
       '<div class="picks-table">'+
         '<table>'+
           '<thead><tr>'+
-            '<th>#</th><th>TICKER</th><th>PRICE</th><th>CONV</th><th>VERDICT</th><th>SECTOR</th><th>EARNINGS</th>'+
+            '<th>#</th><th>TICKER</th><th>PRICE</th><th>CONV</th><th>VERDICT</th><th>ENTRY</th><th>SECTOR</th>'+
           '</tr></thead>'+
           '<tbody>'+rows+'</tbody>'+
         '</table>'+
       '</div>';
+
   }catch{
-    el.innerHTML = '<div class="err">FAILED TO LOAD PICKS.<br>Backend may be starting up.</div>';
+    el.innerHTML =
+      renderBatchBar(currentBatch, BATCH_NAMES[currentBatch])+
+      '<div class="err">FAILED TO LOAD PICKS.<br>Backend may be starting up.</div>';
   }
+}
+
+async function rotateBatch(){
+  currentBatch = (currentBatch + 1) % TOTAL_BATCHES;
+  await loadPicks(currentBatch);
 }
 
 // ── SCAN ───────────────────────────────────────────────────────────────────
@@ -681,7 +726,6 @@ async function scan(){
         '<td style="color:'+efs.col+';font-size:10px">'+s.entry_flag+'</td>'+
         '<td style="color:'+(sz.pct>0?'var(--green)':'var(--gray)')+'">'+
           (sz.pct>0 ? sz.pct+'%' : '—')+'</td>'+
-        (s.percentile!=null?'<td class="gray">'+s.percentile+'%ile</td>':'<td>—</td>')+
       '</tr>';
     }).join('');
 
@@ -689,7 +733,7 @@ async function scan(){
       '<div class="picks-table">'+
         '<table>'+
           '<thead><tr>'+
-            '<th>TICKER</th><th>PRICE</th><th>CONV</th><th>VERDICT</th><th>ENTRY</th><th>SIZE</th><th>PCTILE</th>'+
+            '<th>TICKER</th><th>PRICE</th><th>CONV</th><th>VERDICT</th><th>ENTRY</th><th>SIZE</th>'+
           '</tr></thead>'+
           '<tbody>'+rows+'</tbody>'+
         '</table>'+
@@ -704,11 +748,11 @@ async function manualRefresh(){
   const btn = document.querySelector('.refresh-btn');
   btn.textContent = 'REFRESHING…';
   try{
-    await fetch(API+'/refresh', {method:'POST'});
+    await fetch(API+'/wake');
     setTimeout(()=>{
       btn.textContent = 'REFRESH BASKET';
-      if(document.getElementById('pg-picks').classList.contains('on')) loadPicks();
-    }, 3000);
+      if(document.getElementById('pg-picks').classList.contains('on')) loadPicks(currentBatch);
+    }, 2000);
   }catch{ btn.textContent = 'REFRESH BASKET'; }
 }
 
