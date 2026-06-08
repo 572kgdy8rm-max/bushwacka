@@ -61,12 +61,27 @@ def scan(tickers: str):
 
 @app.get("/top")
 def top():
-    watchlist = [
-        "AAPL","MSFT","NVDA","GOOGL","AMZN",
-        "META","TSLA","AVGO","JPM","V"
+    # Broad universe across all sectors — no bias, top 5 by conviction
+    universe = [
+        # Technology
+        "AAPL", "MSFT", "NVDA", "AVGO", "ORCL",
+        # Financials
+        "JPM", "GS", "V", "MS", "BLK",
+        # Healthcare
+        "LLY", "UNH", "JNJ", "ABBV", "MRK",
+        # Industrials
+        "CAT", "HON", "GE", "UPS", "RTX",
+        # Energy
+        "XOM", "CVX", "COP", "SLB", "EOG",
+        # Consumer
+        "AMZN", "HD", "MCD", "NKE", "COST",
+        # Communication
+        "GOOGL", "META", "DIS", "NFLX", "T",
+        # Utilities / Real Estate
+        "NEE", "DUK", "AMT", "PLD", "SPG",
     ]
     results = []
-    for t in watchlist:
+    for t in universe:
         try:
             result = analyze(t)
             result["options"] = build_options_signal(result)
@@ -75,4 +90,4 @@ def top():
             continue
 
     results.sort(key=lambda x: x["conviction"], reverse=True)
-    return {"results": results[:5]} 
+    return {"results": results[:5]}
