@@ -59,29 +59,37 @@ def scan(tickers: str):
     return {"results": results}
 
 
+BATCHES = {
+    "0": {
+        "name": "Technology",
+        "tickers": ["AAPL", "MSFT", "NVDA", "AVGO", "ORCL", "AMD", "ANET", "PLTR", "CRM", "INTC"]
+    },
+    "1": {
+        "name": "Financials & Healthcare",
+        "tickers": ["JPM", "GS", "V", "MS", "BLK", "LLY", "UNH", "JNJ", "ABBV", "MRK"]
+    },
+    "2": {
+        "name": "Energy & Industrials",
+        "tickers": ["XOM", "CVX", "COP", "SLB", "EOG", "CAT", "HON", "GE", "UPS", "RTX"]
+    },
+    "3": {
+        "name": "Consumer & Communication",
+        "tickers": ["AMZN", "HD", "MCD", "NKE", "COST", "GOOGL", "META", "DIS", "NFLX", "T"]
+    },
+    "4": {
+        "name": "Wildcards",
+        "tickers": ["TSLA", "MSTR", "CEG", "TEM", "ALAB", "RKLB", "IONQ", "HOOD", "COIN", "SOFI"]
+    },
+}
+
+
 @app.get("/top")
-def top():
-    # Broad universe across all sectors — no bias, top 5 by conviction
-    universe = [
-        # Technology
-        "AAPL", "MSFT", "NVDA", "AVGO", "ORCL",
-        # Financials
-        "JPM", "GS", "V", "MS", "BLK",
-        # Healthcare
-        "LLY", "UNH", "JNJ", "ABBV", "MRK",
-        # Industrials
-        "CAT", "HON", "GE", "UPS", "RTX",
-        # Energy
-        "XOM", "CVX", "COP", "SLB", "EOG",
-        # Consumer
-        "AMZN", "HD", "MCD", "NKE", "COST",
-        # Communication
-        "GOOGL", "META", "DIS", "NFLX", "T",
-        # Utilities / Real Estate
-        "NEE", "DUK", "AMT", "PLD", "SPG",
-    ]
+def top(batch: int = 0):
+    key     = str(batch % len(BATCHES))
+    group   = BATCHES[key]
     results = []
-    for t in universe:
+
+    for t in group["tickers"]:
         try:
             result = analyze(t)
             result["options"] = build_options_signal(result)
@@ -90,4 +98,11 @@ def top():
             continue
 
     results.sort(key=lambda x: x["conviction"], reverse=True)
-    return {"results": results[:5]}
+
+    return {
+        "batch":       int(key),
+        "batch_name":  group["name"],
+        "next_batch":  (int(key) + 1) % len(BATCHES),
+        "total_batches": len(BATCHES),
+        "results":     results[:5],
+    }
