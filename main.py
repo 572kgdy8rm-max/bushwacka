@@ -1,11 +1,23 @@
 """
 main.py — WhaleWatch API
 """
-
+import math
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from core import analyze
 from options import build_options_signal
+
+def sanitize(obj):
+    """Recursively replace NaN/Inf floats with None so FastAPI can serialize."""
+    if isinstance(obj, float):
+        return None if (math.isnan(obj) or math.isinf(obj)) else obj
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize(i) for i in obj]
+    return obj
+
+
 
 app = FastAPI(title="WhaleWatch Quant API")
 
@@ -31,7 +43,7 @@ def wake():
 @app.get("/signal/{ticker}")
 def signal(ticker: str):
     try:
-        result = analyze(ticker)
+        result = sanitize(analyze(ticker))
         result["options"] = build_options_signal(result)
         return result
     except Exception as e:
@@ -49,7 +61,7 @@ def scan(tickers: str):
         if not t:
             continue
         try:
-            result = analyze(t)
+            result = sanitize(analyze(t))
             result["options"] = build_options_signal(result)
             results.append(result)
         except:
@@ -91,7 +103,7 @@ def top(batch: int = 0):
 
     for t in group["tickers"]:
         try:
-            result = analyze(t)
+            result = sanitize(analyze(t))
             result["options"] = build_options_signal(result)
             results.append(result)
         except:
