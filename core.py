@@ -89,10 +89,27 @@ def clamp(x, lo=0.0, hi=10.0):
 def fetch(ticker: str):
     end   = datetime.now()
     start = end - timedelta(days=HISTORY_DAYS)
-    df    = yf.Ticker(ticker).history(start=start, end=end)
-    if len(df) < 60:
-        raise ValueError(f"Not enough data for {ticker}")
-    return df
+
+    # Primary: Ticker.history()
+    try:
+        df = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
+        if df is not None and len(df) >= 60 and df["Close"].notna().sum() >= 60:
+            return df
+    except:
+        pass
+
+    # Fallback: yf.download() uses a different endpoint
+    try:
+        df = yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
+        if df is not None and len(df) >= 60:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            if df["Close"].notna().sum() >= 60:
+                return df
+    except:
+        pass
+
+    raise ValueError(f"Could not fetch price data for {ticker}")
 
 def _fetch_info_with_retry(t, retries=3, delay=2.0) -> dict:
     """
