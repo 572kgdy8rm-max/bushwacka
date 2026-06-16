@@ -1,6 +1,5 @@
 fastapi
-uvicorn[standard]
-yfinance>=0.2.54
+uvicorn
 numpy
 pandas
-apscheduler
+requests
