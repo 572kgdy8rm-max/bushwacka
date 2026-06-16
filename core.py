@@ -9,8 +9,21 @@ v2 additions: OBV fix, short interest, forward P/E vs sector, earnings revision
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
+import requests
+import os
 from datetime import datetime, timedelta
+
+# ── POLYGON.IO CONFIG ──────────────────────────────────────────────────────
+POLYGON_KEY = os.environ.get("POLYGON_KEY", "YOUR_POLYGON_KEY")
+POLYGON_BASE = "https://api.polygon.io"
+
+def _poly(path, params=None):
+    """Make a Polygon REST call. Returns parsed JSON or raises."""
+    p = params or {}
+    p["apiKey"] = POLYGON_KEY
+    r = requests.get(POLYGON_BASE + path, params=p, timeout=15)
+    r.raise_for_status()
+    return r.json()
 
 # ── CONSTANTS ──────────────────────────────────────────────────────────────
 RSI_PERIOD    = 14
@@ -87,51 +100,38 @@ def clamp(x, lo=0.0, hi=10.0):
     return max(lo, min(hi, x))
 
 def fetch(ticker: str):
+    """Fetch OHLCV history from Polygon.io aggregates endpoint."""
     end   = datetime.now()
     start = end - timedelta(days=HISTORY_DAYS)
 
-    # Primary: Ticker.history()
-    try:
-        df = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
-        if df is not None and len(df) >= 60 and df["Close"].notna().sum() >= 60:
-            return df
-    except:
-        pass
+    from_str = start.strftime("%Y-%m-%d")
+    to_str   = end.strftime("%Y-%m-%d")
 
-    # Fallback: yf.download() uses a different endpoint
-    try:
-        df = yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
-        if df is not None and len(df) >= 60:
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            if df["Close"].notna().sum() >= 60:
-                return df
-    except:
-        pass
+    data = _poly(
+        f"/v2/aggs/ticker/{ticker}/range/1/day/{from_str}/{to_str}",
+        {"adjusted": "true", "sort": "asc", "limit": 5000}
+    )
 
-    raise ValueError(f"Could not fetch price data for {ticker}")
+    results = data.get("results", [])
+    if not results or len(results) < 60:
+        raise ValueError(f"Not enough data for {ticker}")
 
-def _fetch_info_with_retry(t, retries=3, delay=2.0) -> dict:
-    """
-    Fetch t.info with retries. yfinance silently returns {} when rate-limited
-    so we check for the presence of a known key ('symbol') to detect empty responses.
-    """
-    import time
-    for attempt in range(retries):
-        try:
-            info = t.info or {}
-            if info.get("symbol") or info.get("sector") or info.get("forwardPE"):
-                return info
-            # Got an empty or near-empty dict — wait and retry
-            if attempt < retries - 1:
-                time.sleep(delay * (attempt + 1))
-        except Exception:
-            if attempt < retries - 1:
-                time.sleep(delay * (attempt + 1))
-    return {}
+    df = pd.DataFrame(results)
+    df["Date"] = pd.to_datetime(df["t"], unit="ms", utc=True)
+    df = df.set_index("Date")
+    df = df.rename(columns={
+        "o": "Open",
+        "h": "High",
+        "l": "Low",
+        "c": "Close",
+        "v": "Volume",
+        "vw": "VWAP",
+    })
 
+    return df[["Open", "High", "Low", "Close", "Volume"]]
 
 def get_metadata(ticker: str) -> dict:
+    """Fetch fundamental metadata from Polygon.io ticker details + financials."""
     EMPTY = {
         "sector":        "Unknown",
         "earnings_date": "Unknown",
@@ -142,24 +142,83 @@ def get_metadata(ticker: str) -> dict:
         "num_analysts":  0,
     }
     try:
-        t    = yf.Ticker(ticker)
-        full = _fetch_info_with_retry(t)
+        # ── Ticker details ───────────────────────────────────────────────
+        det = _poly(f"/v3/reference/tickers/{ticker}")
+        info = det.get("results", {})
 
-        # ── Sector — try info first, then fast_info attributes ───────────
         sector = (
-            full.get("sector") or
-            full.get("sectorDisp") or
-            full.get("sectorKey") or
-            None
+            info.get("sic_description") or
+            info.get("type") or
+            "Unknown"
         )
-        # fast_info fallback for sector
-        if not sector:
-            try:
-                fi = t.fast_info
-                sector = getattr(fi, "sector", None)
-            except:
-                pass
-        sector = sector or "Unknown"
+
+        # Map SIC to our sector names where possible
+        name = info.get("name", "").lower()
+        sic  = info.get("sic_code", "")
+        brute_sector = _sic_to_sector(sic, name)
+        if brute_sector != "Unknown":
+            sector = brute_sector
+
+        # ── Earnings date ────────────────────────────────────────────────
+        earnings = "Unknown"
+        try:
+            fin = _poly(
+                f"/vX/reference/financials",
+                {"ticker": ticker, "timeframe": "quarterly", "limit": 1, "sort": "period_of_report_date"}
+            )
+            # Polygon doesn't give future earnings on free tier — use Unknown
+            earnings = "Unknown"
+        except:
+            pass
+
+        # ── Snapshot for short interest / basic fundamentals ─────────────
+        fwd_pe    = None
+        short_pct = None
+        rec_mean  = None
+        rec_key   = None
+        num_analysts = 0
+
+        try:
+            snap = _poly(f"/v2/snapshot/locale/us/markets/stocks/tickers/{ticker}")
+            day  = snap.get("ticker", {})
+            # Polygon free tier doesn't include P/E or short interest
+            # These stay None until Polygon Starter plan
+        except:
+            pass
+
+        return {
+            "sector":        sector,
+            "earnings_date": earnings,
+            "fwd_pe":        fwd_pe,
+            "short_pct":     short_pct,
+            "rec_mean":      rec_mean,
+            "rec_key":       rec_key,
+            "num_analysts":  num_analysts,
+        }
+
+    except Exception as e:
+        print(f"  [metadata] {ticker} failed: {e}")
+        return EMPTY
+
+
+def _sic_to_sector(sic: str, name: str) -> str:
+    """Rough SIC code → sector mapping."""
+    try:
+        s = int(sic)
+    except:
+        return "Unknown"
+    if 2800 <= s <= 2999 or 5120 <= s <= 5122: return "Healthcare"
+    if 3559 <= s <= 3579 or 3670 <= s <= 3679 or 7370 <= s <= 7379: return "Technology"
+    if 6000 <= s <= 6199 or 6200 <= s <= 6299 or 6300 <= s <= 6399: return "Financial Services"
+    if 1300 <= s <= 1499 or 2900 <= s <= 2999: return "Energy"
+    if 4900 <= s <= 4999: return "Utilities"
+    if 5200 <= s <= 5999: return "Consumer Cyclical"
+    if 2000 <= s <= 2099 or 5400 <= s <= 5499: return "Consumer Defensive"
+    if 1500 <= s <= 1799 or 3400 <= s <= 3499 or 3700 <= s <= 3799: return "Industrials"
+    if 1000 <= s <= 1499: return "Basic Materials"
+    if 6500 <= s <= 6599: return "Real Estate"
+    if 4800 <= s <= 4899: return "Communication Services"
+    return "Unknown"
 
         # ── Earnings date ────────────────────────────────────────────────
         earnings = "Unknown"
